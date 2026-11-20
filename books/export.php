@@ -9,13 +9,14 @@ header('Content-Disposition: attachment; filename=books_' . date('Y-m-d_His') . 
 $output = fopen('php://output', 'w');
 
 // Header row
-fputcsv($output, ['ID', 'ISBN', 'Title', 'Author', 'Category', 'Publisher', 'Year Published', 'Total Copies', 'Available Copies']);
+fputcsv($output, ['ID', 'ISBN', 'Title', 'Author', 'Category', 'Subcategory', 'Publisher', 'Year Published', 'Total Copies', 'Available Copies']);
 
-$sql = "SELECT b.id, b.isbn, b.title, a.name AS author_name, c.name AS category_name,
+$sql = "SELECT b.id, b.isbn, b.title, a.name AS author_name, c.name AS category_name, s.name AS subcategory_name,
                b.publisher, b.year_published, b.total_copies, b.available_copies
         FROM books b
         LEFT JOIN authors a ON b.author_id = a.id
         LEFT JOIN categories c ON b.category_id = c.id
+        LEFT JOIN subcategories s ON b.subcategory_id = s.id
         ORDER BY b.title ASC";
 
 $stmt = $pdo->query($sql);
@@ -26,6 +27,7 @@ while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
         $row['title'],
         $row['author_name'] ?? 'N/A',
         $row['category_name'] ?? 'N/A',
+        $row['subcategory_name'] ?? 'N/A',
         $row['publisher'] ?? 'N/A',
         $row['year_published'] ?? 'N/A',
         $row['total_copies'],

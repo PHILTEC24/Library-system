@@ -44,12 +44,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $errors[] = 'Rule Violation: "' . e($book['title']) . '" has zero available copies in stock.';
         }
 
-        // 3. Business rule: A member cannot borrow the same book twice at the same time.
+        // 3. Business rule: Single Active Book Policy (1 Person = 1 Book)
+        // A member can only borrow one book and cannot borrow again until the previous book is returned (cleared loan).
         if (empty($errors)) {
-            $dupStmt = $pdo->prepare('SELECT COUNT(*) FROM loans WHERE member_id = ? AND book_id = ? AND date_returned IS NULL');
-            $dupStmt->execute([$member_id, $book_id]);
-            if ($dupStmt->fetchColumn() > 0) {
-                $errors[] = 'Rule Violation: Member "' . e($member['full_name']) . '" already has an active (unreturned) loan for "' . e($book['title']) . '".';
+            $activeStmt = $pdo->prepare(
+                'SELECT l.id, b.title 
+                 FROM loans l 
+                 JOIN books b ON l.book_id = b.id 
+                 WHERE l.member_id = ? AND l.date_returned IS NULL 
+                 LIMIT 1'
+            );
+            $activeStmt->execute([$member_id]);
+            $existingLoan = $activeStmt->fetch();
+            if ($existingLoan) {
+                $errors[] = 'Rule Violation: Member "' . e($member['full_name']) . '" already has an unreturned book ("' . e($existingLoan['title']) . '"). A member is only permitted to borrow 1 book at a time and cannot borrow another until the previous book is returned and cleared.';
             }
         }
 
@@ -94,8 +102,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Fetch active members
-$members = $pdo->query('SELECT id, member_number, full_name FROM members WHERE status = "active" ORDER BY full_name ASC')->fetchAll();
+// Fetch active members with their active loan counts
+$members = $pdo->query('
+    SELECT m.id, m.member_number, m.full_name,
+           (SELECT COUNT(*) FROM loans l WHERE l.member_id = m.id AND l.date_returned IS NULL) AS active_loans
+    FROM members m 
+    WHERE m.status = "active" 
+    ORDER BY m.full_name ASC
+')->fetchAll();
 
 // Fetch books with available copies > 0
 $books = $pdo->query('SELECT id, isbn, title, available_copies, total_copies FROM books WHERE available_copies > 0 ORDER BY title ASC')->fetchAll();
@@ -137,14 +151,15 @@ require_once __DIR__ . '/../includes/navbar.php';
             Member <span class="text-danger">*</span>
           </label>
           <select name="member_id" id="member_id" class="form-select" required>
-            <option value="">-- Choose an Active Member --</option>
+            <option value="">-- Choose an Eligible Member --</option>
             <?php foreach ($members as $m): ?>
-              <option value="<?= $m['id'] ?>" <?= (isset($_POST['member_id']) && $_POST['member_id'] == $m['id']) ? 'selected' : '' ?>>
-                <?= e($m['member_number']) ?> - <?= e($m['full_name']) ?>
+              <?php $hasLoan = ($m['active_loans'] > 0); ?>
+              <option value="<?= $m['id'] ?>" <?= $hasLoan ? 'disabled class="text-muted bg-light"' : '' ?> <?= (isset($_POST['member_id']) && $_POST['member_id'] == $m['id']) ? 'selected' : '' ?>>
+                <?= e($m['member_number']) ?> - <?= e($m['full_name']) ?><?= $hasLoan ? ' (Already has an unreturned book — Locked)' : ' (Eligible)' ?>
               </option>
             <?php endforeach; ?>
           </select>
-          <div class="form-text text-muted">Only active members can borrow books. Suspended members are excluded.</div>
+          <div class="form-text text-muted">A member can only borrow 1 book at a time. Members with an existing unreturned loan must return it first.</div>
         </div>
 
         <!-- Book Selection -->
@@ -169,12 +184,14 @@ require_once __DIR__ . '/../includes/navbar.php';
             <h6 class="fw-bold text-secondary mb-2"><i class="bi bi-info-circle me-1"></i>Automatic Loan Rules</h6>
             <div class="row g-2 small text-muted">
               <div class="col-sm-6">
-                <strong>Issue Date:</strong> <?= date('Y-m-d') ?> (Today)
+                <strong>Borrow Limit:</strong> 1 book max per member (must return before next borrow)
               </div>
               <div class="col-sm-6">
-                <strong>Due Date:</strong> <?= date('Y-m-d', strtotime('+14 days')) ?> (Auto: +14 days)
+                <strong>Due Date:</strong> <?= date('Y-m-d', strtotime('+14 days')) ?> (Auto: 14 days)
               </div>
             </div>
+          </div>
+        </div>
           </div>
         </div>
 
