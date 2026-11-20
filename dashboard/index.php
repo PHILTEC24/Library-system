@@ -19,7 +19,11 @@ $totalMembers       = (int)$pdo->query('SELECT COUNT(*) FROM members')->fetchCol
 $activeMembers      = (int)$pdo->query("SELECT COUNT(*) FROM members WHERE status = 'active'")->fetchColumn();
 $suspendedMembers   = (int)$pdo->query("SELECT COUNT(*) FROM members WHERE status = 'suspended'")->fetchColumn();
 $activeLoans        = (int)$pdo->query("SELECT COUNT(*) FROM loans WHERE date_returned IS NULL")->fetchColumn();
-$dueThisWeek        = (int)$pdo->query("SELECT COUNT(*) FROM loans WHERE date_returned IS NULL AND due_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL '7 DAY')")->fetchColumn();
+$todayStr           = date('Y-m-d');
+$nextWeekStr        = date('Y-m-d', strtotime('+7 days'));
+$stmtDue            = $pdo->prepare("SELECT COUNT(*) FROM loans WHERE date_returned IS NULL AND due_date BETWEEN ? AND ?");
+$stmtDue->execute([$todayStr, $nextWeekStr]);
+$dueThisWeek        = (int)$stmtDue->fetchColumn();
 $overdueLoans       = (int)$pdo->query("SELECT COUNT(*) FROM loans WHERE date_returned IS NULL AND due_date < CURDATE()")->fetchColumn();
 $oldestOverdueDays  = (int)$pdo->query("SELECT COALESCE(MAX(DATEDIFF(CURDATE(), due_date)), 0) FROM loans WHERE date_returned IS NULL AND due_date < CURDATE()")->fetchColumn();
 
