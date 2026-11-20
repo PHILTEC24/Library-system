@@ -20,6 +20,7 @@ The application uses **PHP 8 + PDO** for secure server-side operations and **MyS
 - Secure login and role-aware staff sessions
 - Dashboard with live library statistics and overdue alerts
 - CRUD management for books, authors, categories and members
+- Book cover images and staff-uploaded PDF e-books with in-browser viewing
 - 14-day book issue workflow with availability and transaction checks
 - Book return workflow with automatic overdue-day calculation
 - Active-loan and overdue-loan tracking
@@ -134,6 +135,7 @@ Library-system/
 ├── database/
 │   ├── library_db.sql        # Schema and complete seed data
 │   ├── queries.sql           # Loan, overdue and aggregate reports
+│   ├── migrations/           # Upgrades for existing installations
 │   ├── logo.png              # Project logo
 │   └── erd.png               # Entity relationship diagram
 ├── docs/
@@ -142,12 +144,14 @@ Library-system/
 │   └── screenshots/          # Application screenshots
 ├── includes/
 │   ├── auth_check.php        # Protected-route session guard
+│   ├── book_media.php        # Validated cover/PDF upload helpers
 │   ├── footer.php            # Shared footer and scripts
 │   ├── functions.php         # Escaping, flash and helper functions
 │   ├── header.php            # Shared page head
 │   └── navbar.php            # Shared navigation
 ├── loans/                    # Issue, return, list and export loans
-└── members/                  # Member CRUD and CSV export
+├── members/                  # Member CRUD and CSV export
+└── uploads/books/            # Private cover and PDF storage
 ```
 
 ## Installation
@@ -190,6 +194,8 @@ C:\xampp\htdocs\library-system\database\library_db.sql
 
 and click **Import**. The SQL script creates `library_db`, tables, relationships, constraints and sample records.
 
+For an existing database, run `database/migrations/20261120_add_book_media.sql` once in phpMyAdmin instead of re-importing the full SQL file. Re-importing `library_db.sql` drops and recreates the database, replacing its data.
+
 ### 4. Configure the connection
 
 Check [config/database.php](config/database.php). The default XAMPP credentials are:
@@ -213,6 +219,12 @@ Visit <http://localhost/library-system>. Use one of the seeded accounts:
 | `librarian` | `password` | Librarian |
 
 > Change or remove demo credentials before using the application in production.
+
+### Upload covers and digital books
+
+From **Books → Add book** or **Edit book**, optionally attach a JPEG/PNG/WebP cover image (up to 5 MB) and a PDF digital copy (up to 25 MB). Covers appear in the catalogue. Staff can open PDFs in the browser or download them. Uploaded media is private to authenticated users; only upload digital books that the library is authorised to distribute.
+
+If uploads are rejected due to PHP limits, update `upload_max_filesize` to at least `25M` and `post_max_size` to at least `32M` in `php.ini`, then restart Apache. The application stores files under `uploads/books/`; retain this directory and its contents when backing up or moving the database.
 
 ## Database design
 
@@ -255,14 +267,12 @@ The supplied team register contains the following twelve names and registration 
 | 2 | ALIMPA ANNE HILLARY | 269-896 |
 | 3 | KABAJUNGU RITAH | 267-640 |
 | 4 | KIRABO ALICE | 274-961 |
-| 5 | MUAWIA MOHAMED | 229-449 |
-| 6 | IBRAHIM ISHAG | — |
-| 7 | NATOZO PATIENCE | 258-901 |
-| 8 | MARTHA | — |
-| 9 | NIWASIIMA ASHELYCOLE | 275-353 |
-| 10 | ONYANGO JOHN STEVEN | 270-472 |
-| 11 | RWOTHOMIO EVANS, E. | 275-372 |
-| 12 | TUSABEGE PHILBERT | 272-210 |
+| 5 | MUAWIA MOHAMED IBRAHIM ISHAG | 229-449 |
+| 6 | NATOZO PATIENCE MARTHA| 258-901 |
+| 7 | NIWASIIMA ASHELYCOLE | 275-353 |
+| 8 | ONYANGO JOHN STEVEN | 270-472 |
+| 9| RWOTHOMIO EVANS . E. | 275-372 |
+| 10 | TUSABEGE PHILBERT | 272-210 |
 
 ## Security
 

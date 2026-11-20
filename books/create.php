@@ -3,6 +3,7 @@ require_once __DIR__ . '/../config/bootstrap.php';
 require_once __DIR__ . '/../includes/auth_check.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/functions.php';
+require_once __DIR__ . '/../includes/book_media.php';
 
 $pageTitle = 'Add Book';
 $errors = [];
@@ -69,11 +70,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (empty($errors)) {
+        $coverImage = null;
+        $ebookFile = null;
         try {
+            $coverImage = store_book_media_upload($_FILES['cover_image'] ?? null, 'cover');
+            $ebookFile = store_book_media_upload($_FILES['ebook_file'] ?? null, 'ebook');
+
             $pdo->beginTransaction();
             $stmt = $pdo->prepare(
-                "INSERT INTO books (isbn, title, sub_category_id, publisher, year_published, total_copies, available_copies)
-                 VALUES (?, ?, ?, ?, ?, ?, ?)"
+                "INSERT INTO books (isbn, title, sub_category_id, publisher, year_published, total_copies, available_copies, cover_image, ebook_file)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
             );
             $stmt->execute([
                 $isbn,
@@ -83,6 +89,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $year_published !== '' ? intval($year_published) : null,
                 $total_copies,
                 $total_copies,
+                $coverImage,
+                $ebookFile,
             ]);
             $newBookId = $pdo->lastInsertId();
             if ($author_id > 0) {
@@ -97,6 +105,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($pdo->inTransaction()) {
                 $pdo->rollBack();
             }
+            delete_book_media_upload($coverImage);
+            delete_book_media_upload($ebookFile);
             $errors['general'] = 'Failed to add book: ' . $e->getMessage();
         }
     }
@@ -126,7 +136,7 @@ require_once __DIR__ . '/../includes/navbar.php';
     </div>
 <?php endif; ?>
 
-<form method="POST" action="" class="lms-book-form" novalidate>
+<form method="POST" action="" enctype="multipart/form-data" class="lms-book-form" novalidate>
     <div class="row g-4">
         <!-- Left Column: Form Cards (8 of 12) -->
         <div class="col-lg-8">
@@ -256,6 +266,26 @@ require_once __DIR__ . '/../includes/navbar.php';
                             <?php endif; ?>
                             <div class="form-text">Available copies will be initialized to match this count.</div>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card lms-card mb-4">
+                <div class="card-header">
+                    <h2 class="lms-section-title mb-0">Book cover and digital copy</h2>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="cover_image" class="form-label">Cover image</label>
+                        <input type="file" id="cover_image" name="cover_image" class="form-control"
+                               accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp">
+                        <div class="form-text">Optional. JPEG, PNG or WebP; maximum 5 MB.</div>
+                    </div>
+                    <div>
+                        <label for="ebook_file" class="form-label">Digital book (PDF)</label>
+                        <input type="file" id="ebook_file" name="ebook_file" class="form-control"
+                               accept=".pdf,application/pdf">
+                        <div class="form-text">Optional. PDF only, maximum 25 MB. Upload only files you are authorised to share.</div>
                     </div>
                 </div>
             </div>

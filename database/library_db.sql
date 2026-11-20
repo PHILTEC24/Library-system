@@ -61,6 +61,8 @@ CREATE TABLE books (
     year_published   YEAR         NULL,
     total_copies     INT          NOT NULL DEFAULT 1,
     available_copies INT          NOT NULL DEFAULT 1,
+    cover_image      VARCHAR(100) NULL,
+    ebook_file       VARCHAR(100) NULL,
     PRIMARY KEY (book_id),
     UNIQUE KEY uq_books_isbn (isbn),
     CONSTRAINT fk_books_subcat FOREIGN KEY (sub_category_id)

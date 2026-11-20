@@ -20,7 +20,7 @@ $authorAgg = $isPgsql
 
 $params = [];
 $sql = "SELECT b.book_id AS id, b.isbn, b.title, b.publisher, b.year_published,
-               b.total_copies, b.available_copies,
+               b.total_copies, b.available_copies, b.cover_image, b.ebook_file,
                $authorAgg
                c.category_id,
                c.name AS category_name,
@@ -48,7 +48,7 @@ if ($subFilter > 0) {
     $sql .= " AND b.sub_category_id = ?";
     $params[] = $subFilter;
 }
-$sql .= " GROUP BY b.book_id, b.isbn, b.title, b.publisher, b.year_published, b.total_copies, b.available_copies, c.category_id, c.name, s.name ORDER BY b.title ASC";
+$sql .= " GROUP BY b.book_id, b.isbn, b.title, b.publisher, b.year_published, b.total_copies, b.available_copies, b.cover_image, b.ebook_file, c.category_id, c.name, s.name ORDER BY b.title ASC";
 
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
@@ -214,7 +214,13 @@ require_once __DIR__ . '/../includes/navbar.php';
                         <!-- 1. Book (Spine + Title + Author) -->
                         <td class="lms-td-primary">
                             <div class="d-flex align-items-center gap-3">
-                                <?= spine_tile($book['title'], $catId, 'md') ?>
+                                <?php if (!empty($book['cover_image'])): ?>
+                                    <img src="<?= BASE_URL ?>/books/media.php?id=<?= (int)$book['id'] ?>&amp;type=cover"
+                                         alt="Cover of <?= e($book['title']) ?>"
+                                         style="width: 48px; height: 64px; object-fit: cover; border-radius: .25rem;">
+                                <?php else: ?>
+                                    <?= spine_tile($book['title'], $catId, 'md') ?>
+                                <?php endif; ?>
                                 <div class="min-w-0">
                                     <div class="fw-semibold text-truncate" title="<?= e($book['title']) ?>">
                                         <?= e($book['title']) ?>
@@ -259,6 +265,17 @@ require_once __DIR__ . '/../includes/navbar.php';
                         <!-- 6. Actions -->
                         <td class="lms-td-actions text-end" data-label="Actions">
                             <div class="d-inline-flex align-items-center gap-1">
+                                <?php if (!empty($book['ebook_file'])): ?>
+                                    <a href="<?= BASE_URL ?>/books/media.php?id=<?= (int)$book['id'] ?>&amp;type=ebook"
+                                       target="_blank" rel="noopener"
+                                       class="lms-btn-icon" title="Open e-book" aria-label="Open e-book <?= e($book['title']) ?>">
+                                        <i class="bi bi-file-earmark-pdf"></i>
+                                    </a>
+                                    <a href="<?= BASE_URL ?>/books/media.php?id=<?= (int)$book['id'] ?>&amp;type=ebook&amp;download=1"
+                                       class="lms-btn-icon" title="Download e-book" aria-label="Download e-book <?= e($book['title']) ?>">
+                                        <i class="bi bi-download"></i>
+                                    </a>
+                                <?php endif; ?>
                                 <a href="<?= BASE_URL ?>/books/edit.php?id=<?= $book['id'] ?>"
                                    class="lms-btn-icon"
                                    title="Edit book" aria-label="Edit <?= e($book['title']) ?>">

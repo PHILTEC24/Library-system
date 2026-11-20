@@ -71,8 +71,14 @@ CREATE TABLE IF NOT EXISTS books (
     publisher VARCHAR(100) NULL,
     year_published SMALLINT NULL,
     total_copies INT NOT NULL DEFAULT 1,
-    available_copies INT NOT NULL DEFAULT 1
+    available_copies INT NOT NULL DEFAULT 1,
+    cover_image VARCHAR(100) NULL,
+    ebook_file VARCHAR(100) NULL
 );
+
+ALTER TABLE books
+    ADD COLUMN IF NOT EXISTS cover_image VARCHAR(100) NULL,
+    ADD COLUMN IF NOT EXISTS ebook_file VARCHAR(100) NULL;
 
 CREATE TABLE IF NOT EXISTS book_authors (
     book_author_id SERIAL PRIMARY KEY,

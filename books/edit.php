@@ -3,6 +3,7 @@ require_once __DIR__ . '/../config/bootstrap.php';
 require_once __DIR__ . '/../includes/auth_check.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/functions.php';
+require_once __DIR__ . '/../includes/book_media.php';
 
 $pageTitle = 'Edit Book';
 $errors = [];
@@ -94,7 +95,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (empty($errors)) {
+        $newCoverImage = null;
+        $newEbookFile = null;
         try {
+            $newCoverImage = store_book_media_upload($_FILES['cover_image'] ?? null, 'cover');
+            $newEbookFile = store_book_media_upload($_FILES['ebook_file'] ?? null, 'ebook');
+            $coverImage = $newCoverImage ?? (!empty($_POST['remove_cover']) ? null : $book['cover_image']);
+            $ebookFile = $newEbookFile ?? (!empty($_POST['remove_ebook']) ? null : $book['ebook_file']);
+
             $pdo->beginTransaction();
 
             $copyDelta = $total_copies - intval($book['total_copies']);
@@ -102,7 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $stmt = $pdo->prepare(
                 "UPDATE books SET isbn=?, title=?, sub_category_id=?, publisher=?,
-                 year_published=?, total_copies=?, available_copies=?
+                 year_published=?, total_copies=?, available_copies=?, cover_image=?, ebook_file=?
                  WHERE book_id=?"
             );
             $stmt->execute([
@@ -113,6 +121,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $year_published !== '' ? intval($year_published) : null,
                 $total_copies,
                 $newAvailable,
+                $coverImage,
+                $ebookFile,
                 $id,
             ]);
 
@@ -129,6 +139,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             $pdo->commit();
+            if ($book['cover_image'] !== $coverImage) {
+                delete_book_media_upload($book['cover_image']);
+            }
+            if ($book['ebook_file'] !== $ebookFile) {
+                delete_book_media_upload($book['ebook_file']);
+            }
             setFlash('success', 'Book "' . htmlspecialchars($title) . '" updated successfully.');
             header('Location: ' . BASE_URL . '/books/index.php');
             exit;
@@ -136,6 +152,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($pdo->inTransaction()) {
                 $pdo->rollBack();
             }
+            delete_book_media_upload($newCoverImage);
+            delete_book_media_upload($newEbookFile);
             $errors['general'] = 'Failed to update book: ' . $e->getMessage();
         }
     }
@@ -165,7 +183,7 @@ require_once __DIR__ . '/../includes/navbar.php';
     </div>
 <?php endif; ?>
 
-<form method="POST" action="" class="lms-book-form" novalidate>
+<form method="POST" action="" enctype="multipart/form-data" class="lms-book-form" novalidate>
     <div class="row g-4">
         <!-- Left Column: Form Cards (8 of 12) -->
         <div class="col-lg-8">
@@ -300,6 +318,49 @@ require_once __DIR__ . '/../includes/navbar.php';
                             <input type="text" class="form-control bg-light" value="<?= e($book['available_copies']) ?>" readonly disabled>
                             <div class="form-text">Changes automatically when books are issued or returned.</div>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card lms-card mb-4">
+                <div class="card-header">
+                    <h2 class="lms-section-title mb-0">Book cover and digital copy</h2>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="cover_image" class="form-label">Replace cover image</label>
+                        <input type="file" id="cover_image" name="cover_image" class="form-control"
+                               accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp">
+                        <div class="form-text">Optional. JPEG, PNG or WebP; maximum 5 MB.</div>
+                        <?php if (!empty($book['cover_image'])): ?>
+                            <div class="d-flex align-items-center gap-3 mt-2">
+                                <img src="<?= BASE_URL ?>/books/media.php?id=<?= (int)$book['id'] ?>&amp;type=cover"
+                                     alt="Current cover for <?= e($book['title']) ?>"
+                                     style="width: 64px; height: 88px; object-fit: cover; border-radius: .25rem;">
+                                <label class="form-check-label">
+                                    <input type="checkbox" class="form-check-input" name="remove_cover" value="1"
+                                           <?= !empty($_POST['remove_cover']) ? 'checked' : '' ?>>
+                                    Remove current cover
+                                </label>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                    <div>
+                        <label for="ebook_file" class="form-label">Replace digital book (PDF)</label>
+                        <input type="file" id="ebook_file" name="ebook_file" class="form-control"
+                               accept=".pdf,application/pdf">
+                        <div class="form-text">Optional. PDF only, maximum 25 MB.</div>
+                        <?php if (!empty($book['ebook_file'])): ?>
+                            <div class="d-flex flex-wrap align-items-center gap-3 mt-2">
+                                <a href="<?= BASE_URL ?>/books/media.php?id=<?= (int)$book['id'] ?>&amp;type=ebook"
+                                   target="_blank" rel="noopener">Open current e-book</a>
+                                <label class="form-check-label">
+                                    <input type="checkbox" class="form-check-input" name="remove_ebook" value="1"
+                                           <?= !empty($_POST['remove_ebook']) ? 'checked' : '' ?>>
+                                    Remove current e-book
+                                </label>
+                            </div>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
