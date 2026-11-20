@@ -17,7 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($username) || empty($password)) {
         $error = 'Wrong username or password.';
     } else {
-        $stmt = $pdo->prepare('SELECT id, username, password_hash, full_name, role FROM users WHERE username = ?');
+        $stmt = $pdo->prepare('SELECT user_id AS id, username, password_hash, full_name, role FROM users WHERE username = ?');
         $stmt->execute([$username]);
         $user = $stmt->fetch();
 
