@@ -1532,6 +1532,10 @@ tr:hover .lms-spine {
 [data-theme="dark"] .border-light-subtle {
   border-color: var(--lms-line) !important;
 }
+[data-theme="dark"] .bg-danger-subtle {
+  background-color: var(--lms-danger-bg) !important;
+  color: var(--lms-danger) !important;
+}
 
 /* ==========================================================================
    Book Catalog View Switcher (List & Grid)

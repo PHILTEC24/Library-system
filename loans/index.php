@@ -178,6 +178,8 @@ require_once __DIR__ . '/../includes/navbar.php';
                         $status = $loan['computed_status'];
                         $isOverdue = ($status === 'overdue');
                         $isReturned = ($status === 'returned');
+                        $finePercent = 0;
+                        $overdueDays = 0;
 
                         // Pill style
                         if ($isReturned) {
@@ -186,6 +188,8 @@ require_once __DIR__ . '/../includes/navbar.php';
                         } elseif ($isOverdue) {
                             $pillClass = 'lms-pill--danger';
                             $statusLabel = 'Overdue';
+                            $overdueDays = max(1, abs((int)(new DateTime('today'))->diff(new DateTime($loan['due_date']))->format('%r%a')));
+                            $finePercent = $overdueDays * 5;
                         } else {
                             $daysLeft = (int)(new DateTime('today'))->diff(new DateTime($loan['due_date']))->format('%r%a');
                             if ($daysLeft <= 3) {
@@ -229,7 +233,7 @@ require_once __DIR__ . '/../includes/navbar.php';
                                    class="btn btn-sm btn-outline-success lms-btn-action"
                                    data-confirm
                                    data-confirm-title="Mark Book as Returned"
-                                   data-confirm-message="Return '<?= e($loan['book_title']) ?>' borrowed by <?= e($loan['member_name']) ?>?<?= $isOverdue ? ' (Note: This loan is currently overdue).' : '' ?>"
+                                   data-confirm-message="Return '<?= e($loan['book_title']) ?>' borrowed by <?= e($loan['member_name']) ?>?<?= $isOverdue ? ' (Note: This loan is overdue by ' . $overdueDays . ' day(s). Late fine: ' . $finePercent . '% of book price).' : '' ?>"
                                    data-confirm-button="Mark as returned"
                                    data-confirm-style="primary"
                                    title="Mark book as returned">

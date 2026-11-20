@@ -79,7 +79,8 @@ function relative_due($dueDate, $dateReturned = null) {
     
     if ($diffDays < 0) {
         $overdue = abs($diffDays);
-        return '<span class="text-danger fw-semibold">' . $overdue . ' ' . ($overdue === 1 ? 'day' : 'days') . ' overdue</span>';
+        $finePercent = $overdue * 5;
+        return '<span class="text-danger fw-semibold">' . $overdue . ' ' . ($overdue === 1 ? 'day' : 'days') . ' overdue</span> <span class="badge bg-danger-subtle text-danger ms-1">' . $finePercent . '% fine</span>';
     } elseif ($diffDays === 0) {
         return '<span class="text-warning fw-semibold">Due today</span>';
     } elseif ($diffDays <= 3) {

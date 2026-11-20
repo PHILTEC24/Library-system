@@ -41,9 +41,8 @@ $fineMessage = '';
 if ($returnDate > $dueDate) {
     $diffDays = (int)ceil((strtotime($returnDate) - strtotime($dueDate)) / (60 * 60 * 24));
     if ($diffDays > 0) {
-        $fineRatePerDay = 0.50; // $0.50 per day
-        $fineAmount = $diffDays * $fineRatePerDay;
-        $fineMessage = ' (Book was ' . $diffDays . ' day(s) overdue. Calculated late fine: $' . number_format($fineAmount, 2) . ')';
+        $finePercent = $diffDays * 5; // 5% of the book price for each delayed day
+        $fineMessage = ' (Book was ' . $diffDays . ' day(s) overdue. Late fine: ' . $finePercent . '% of book price)';
     }
 }
 

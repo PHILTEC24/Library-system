@@ -183,7 +183,10 @@ require_once __DIR__ . '/../includes/navbar.php';
                                     <!-- Due date & Late info -->
                                     <td data-label="Due" class="text-muted small">
                                         <div>Due <?= format_date($item['due_date']) ?></div>
-                                        <div class="text-danger fw-semibold"><?= (int)$item['days_overdue'] ?> days overdue</div>
+                                        <div class="text-danger fw-semibold">
+                                            <?= (int)$item['days_overdue'] ?> days overdue
+                                            <span class="badge bg-danger-subtle text-danger ms-1"><?= ((int)$item['days_overdue'] * 5) ?>% fine</span>
+                                        </div>
                                     </td>
 
                                     <!-- Action Buttons -->
@@ -199,7 +202,7 @@ require_once __DIR__ . '/../includes/navbar.php';
                                                class="btn btn-sm btn-secondary"
                                                data-confirm="Return '<?= e($item['title']) ?>' for <?= e($item['full_name']) ?>?"
                                                data-confirm-title="Mark overdue loan as returned?"
-                                               data-confirm-message="Return &quot;<?= e($item['title']) ?>&quot; from <?= e($item['full_name']) ?>. This book is <?= (int)$item['days_overdue'] ?> days overdue."
+                                               data-confirm-message="Return &quot;<?= e($item['title']) ?>&quot; from <?= e($item['full_name']) ?>. This book is <?= (int)$item['days_overdue'] ?> days overdue (Late fine: <?= ((int)$item['days_overdue'] * 5) ?>% of book price)."
                                                data-confirm-button="Mark as returned"
                                                data-confirm-style="primary"
                                                onclick="return confirm('Return this book?');">
