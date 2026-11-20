@@ -1,237 +1,280 @@
-# Library Management System (LibraryMS)
-> **Database 2 (DB II) CAT 2 Database Tools Project**  
-> GitHub Repository: [https://github.com/PHILTEC24/Library-system](https://github.com/PHILTEC24/Library-system)
+﻿<div align="center">
+  <img src="database/logo.png" alt="Library Management System logo" width="260">
+  <h1>Library Management System</h1>
+  <p><strong>LibraryMS — a complete, database-driven library operations system</strong></p>
 
----
+  <a href="https://github.com/PHILTEC24/Library-system"><img alt="GitHub Repository" src="https://img.shields.io/badge/GitHub-Library--system-181717?logo=github"></a>
+  <img alt="PHP" src="https://img.shields.io/badge/PHP-8.1%2B-777BB4?logo=php&logoColor=white">
+  <img alt="MySQL" src="https://img.shields.io/badge/MySQL%2FMariaDB-4479A1?logo=mysql&logoColor=white">
+  <img alt="License" src="https://img.shields.io/badge/License-MIT-green">
+</div>
 
-## 1. Project Overview
-The **Library Management System (LibraryMS)** is a web-based database application designed for library staff. It provides full Create, Read, Update, and Delete (CRUD) operations across all library entities, strictly enforces relational database integrity, and adheres to Third Normal Form (3NF). Built specifically for the **XAMPP** environment (Apache, MySQL/MariaDB, PHP), it features secure session-based authentication, parameterized queries (PDO) for SQL injection prevention, automated transaction management, responsive Bootstrap 5 styling, and automated late fine calculation.
+## Overview
 
----
+**LibraryMS** is a web-based library management application built for a database tools course project. It gives authorised library staff a practical interface for managing books, authors, categories, sub-categories, members, loans and returns.
 
-## 2. Test Credentials
+The application uses **PHP 8 + PDO** for secure server-side operations and **MySQL/MariaDB** for relational data storage. Its schema enforces third normal form, foreign keys, unique constraints and referential integrity. The interface is responsive and uses **Bootstrap 5**, Bootstrap Icons, custom CSS and JavaScript for confirmation prompts, live table search and alert dismissal.
 
-The database comes pre-seeded with two staff accounts:
+### Core capabilities
 
-| Username | Password | Full Name | Role | Access Scope |
-|---|---|---|---|---|
-| `admin` | `password` | System Administrator | Admin | Full CRUD, Loans, Reports, Management |
-| `librarian` | `password` | Head Librarian | Librarian | Standard Operations, Loans, Inquiries |
+- Secure login and role-aware staff sessions
+- Dashboard with live library statistics and overdue alerts
+- CRUD management for books, authors, categories and members
+- 14-day book issue workflow with availability and transaction checks
+- Book return workflow with automatic overdue-day calculation
+- Active-loan and overdue-loan tracking
+- CSV exports for books, members and loans
+- Responsive navigation and live client-side search
+- PDO prepared statements and HTML output escaping
 
-> **Note on Security:** All passwords in the database are hashed using PHP's native `password_hash($password, PASSWORD_BCRYPT)`. Plaintext passwords are never stored.
+## Languages & technologies
 
----
-
-## 3. Technology Stack & Tools
-
-| Component | Technology | Version / Specification |
+| Area | Technology | Purpose |
 |---|---|---|
-| **Local Server** | XAMPP | Apache 2.4+, PHP 8.1+, MariaDB 10.4+ / MySQL 8.0+ |
-| **Database** | MySQL / MariaDB | InnoDB engine, `utf8mb4_general_ci` collation |
-| **Backend** | PHP (PDO) | Prepared statements, parameterized queries, transactions |
-| **Frontend** | HTML5, CSS3, JavaScript | Bootstrap 5.3.2, Bootstrap Icons 1.11.3 |
-| **Version Control**| Git / GitHub | Feature branching and tracked commits |
+| Backend | PHP 8.1+ | Authentication, validation, CRUD and transactions |
+| Database | MySQL 8+ / MariaDB 10.4+ | Schema, constraints and seeded data |
+| Database access | PDO | Prepared statements and safe parameter binding |
+| Markup | HTML5 | Page structure and forms |
+| Styling | CSS3, Bootstrap 5 | Responsive layout and components |
+| Interaction | JavaScript, Bootstrap Icons | Live search, confirmations and alerts |
+| Reporting | SQL, CSV | Analytical queries and downloadable exports |
+| Diagramming | Mermaid | User-flow documentation |
+| Local platform | XAMPP / Apache | Development and deployment environment |
+| Source control | Git & GitHub | Collaboration and versioning |
 
----
+## Interactive features
 
-## 4. Setup and Installation on Fresh XAMPP
+<details>
+<summary><strong>Try the live-search experience</strong></summary>
 
-Follow these step-by-step instructions to run the application on a clean XAMPP installation:
+Every searchable table has an automatic **Search** box. Enter a title, member name, ISBN or another visible value and matching rows are filtered instantly in the browser.
 
-### Step 1: Install and Launch XAMPP
-1. Download XAMPP from [https://www.apachefriends.org](https://www.apachefriends.org) (PHP 8.1 or higher).
-2. Install XAMPP into its default location: `C:\xampp`.
-3. Open the **XAMPP Control Panel**.
-4. Click **Start** for both **Apache** and **MySQL**. Verify that both service labels turn green.
-   *(If Apache fails to start, ensure port 80 and 443 are not occupied by Skype, IIS, or VMware, or reassign Apache ports in `httpd.conf`).*
+</details>
 
-### Step 2: Copy the Project Folder
-1. Copy the entire `library-system` folder into XAMPP's web directory:
-   ```
-   C:\xampp\htdocs\library-system
-   ```
-2. Verify that `C:\xampp\htdocs\library-system\index.php` exists.
+<details>
+<summary><strong>Test transaction safeguards</strong></summary>
 
-### Step 3: Create Database & Import Schema
-1. Open your web browser and go to:
-   ```
-   http://localhost/phpmyadmin
-   ```
-2. Click **Databases** on the top menu.
-3. In **Create database**, enter `library_db` and select collation **`utf8mb4_general_ci`**, then click **Create**.
-4. Select `library_db` from the left sidebar.
-5. Click the **Import** tab on the top navigation bar.
-6. Click **Choose File** (Browse) and select:
-   ```
-   C:\xampp\htdocs\library-system\database\library_db.sql
-   ```
-7. Click **Import** at the bottom of the page. You will see a green success banner indicating that all tables and sample records have been created.
+The issue and return workflows use database transactions. An unavailable book or duplicate active loan prevents the operation, and stock/count changes are committed only when the complete transaction succeeds.
 
-### Step 4: Verify Database Connection Config
-Open `config/database.php` in a text editor. The default XAMPP settings match:
+</details>
+
+<details>
+<summary><strong>Export a report</strong></summary>
+
+Open **Books**, **Members** or **Loans** and select **Export CSV**. The application generates a downloadable spreadsheet that can be opened in Excel or LibreOffice.
+
+</details>
+
+## How the system works
+
+```mermaid
+flowchart TD
+    A[Open LibraryMS] --> B[Staff login]
+    B --> C{Valid credentials?}
+    C -->|No| D[Show login error]
+    D --> B
+    C -->|Yes| E[Dashboard]
+
+    E --> F{Choose operation}
+    F -->|Browse/manage| G[Books, Authors, Categories or Members]
+    G --> H[Create, edit or delete record]
+    H --> I[PDO validation & database operation]
+
+    F -->|Issue a book| J[Select active member and available book]
+    J --> K[Check stock and duplicate active loan]
+    K -->|Invalid| L[Return friendly error]
+    K -->|Valid| M[Start transaction]
+    M --> N[Create 14-day loan]
+    N --> O[Decrement available copies]
+    O --> P[Commit transaction]
+
+    F -->|Return a book| Q[Select active loan]
+    Q --> R[Set returned date]
+    R --> S[Increment available copies]
+    S --> T[Calculate overdue fine if applicable]
+
+    F -->|Report| U[View dashboard / run SQL / export CSV]
+
+    I --> E
+    P --> E
+    T --> E
+    U --> E
+```
+
+## Screenshots
+
+| Dashboard | Books | Loans |
+|---|---|---|
+| ![Dashboard](docs/screenshots/01_dashboard.png) | ![Books](docs/screenshots/02_books_list.png) | ![Loans](docs/screenshots/03_loans_list.png) |
+
+| Issue a book | Business rules |
+|---|---|
+| ![Issue a book](docs/screenshots/04_issue_book.png) | ![Business rules](docs/screenshots/05_business_rules.png) |
+
+## Project structure
+
+```text
+Library-system/
+├── index.php                 # Entry router
+├── README.md                 # Project documentation
+├── LICENSE                   # MIT licence
+├── assets/
+│   ├── css/style.css         # Custom responsive styling
+│   └── js/main.js            # Live search, confirmations and alerts
+├── auth/
+│   ├── login.php             # Staff login
+│   └── logout.php            # Session logout
+├── authors/                  # Author CRUD
+├── books/                    # Book CRUD and CSV export
+├── categories/               # Category CRUD
+├── config/
+│   └── database.php          # PDO database connection
+├── dashboard/
+│   └── index.php             # Statistics and overdue information
+├── database/
+│   ├── library_db.sql        # Schema and complete seed data
+│   ├── queries.sql           # Loan, overdue and aggregate reports
+│   ├── logo.png              # Project logo
+│   └── erd.png               # Entity relationship diagram
+├── docs/
+│   ├── report.html           # HTML project report
+│   ├── report.pdf            # PDF project report
+│   └── screenshots/          # Application screenshots
+├── includes/
+│   ├── auth_check.php        # Protected-route session guard
+│   ├── footer.php            # Shared footer and scripts
+│   ├── functions.php         # Escaping, flash and helper functions
+│   ├── header.php            # Shared page head
+│   └── navbar.php            # Shared navigation
+├── loans/                    # Issue, return, list and export loans
+└── members/                  # Member CRUD and CSV export
+```
+
+## Installation
+
+### Requirements
+
+- XAMPP or another Apache/PHP/MySQL environment
+- PHP 8.1 or newer
+- MySQL 8.0+ or MariaDB 10.4+
+- A modern web browser
+
+### 1. Install XAMPP
+
+Download XAMPP from <https://www.apachefriends.org>, install it and start **Apache** and **MySQL** from the XAMPP Control Panel.
+
+### 2. Place the project
+
+Clone or download the repository into the Apache web root:
+
+```powershell
+cd C:\xampp\htdocs
+git clone https://github.com/PHILTEC24/Library-system.git library-system
+```
+
+The application entry point should be:
+
+```text
+C:\xampp\htdocs\library-system\index.php
+```
+
+If cloned under another folder name, update `BASE_URL` in PHP entry files or use `library-system` as shown below.
+
+### 3. Import the database
+
+Open <http://localhost/phpmyadmin>, select **Import**, choose:
+
+```text
+C:\xampp\htdocs\library-system\database\library_db.sql
+```
+
+and click **Import**. The SQL script creates `library_db`, tables, relationships, constraints and sample records.
+
+### 4. Configure the connection
+
+Check [config/database.php](config/database.php). The default XAMPP credentials are:
+
 ```php
 $host = 'localhost';
 $db   = 'library_db';
 $user = 'root';
 $pass = '';
 ```
-No edits are required unless you have customized your MySQL root password.
 
-### Step 5: Access the Application
-1. In your web browser, navigate to:
-   ```
-   http://localhost/library-system
-   ```
-2. The index router will automatically direct you to the login screen:
-   ```
-   http://localhost/library-system/auth/login.php
-   ```
-3. Sign in using:
-   - **Username:** `admin`
-   - **Password:** `password`
-4. You will be redirected to the **Dashboard** displaying live statistics, quick links, recent loans, and overdue alerts.
+Update these values only if your MySQL root account or server differs.
 
----
+### 5. Start LibraryMS
 
-## 5. Folder Structure
+Visit <http://localhost/library-system>. Use one of the seeded accounts:
 
-The project strictly follows the required architecture:
+| Username | Password | Role |
+|---|---|---|
+| `admin` | `password` | Administrator |
+| `librarian` | `password` | Librarian |
 
-```
-library-system/
-├── index.php                 # Root entry router (redirects to login or dashboard)
-├── README.md                 # Project guide, setup instructions & documentation
-├── config/
-│   └── database.php          # Singleton PDO database connection with error handling
-├── database/
-│   ├── library_db.sql        # Database schema, table definitions, constraints, sample data
-│   ├── queries.sql           # Required JOIN and aggregate analytical queries
-│   └── erd.png               # High-resolution Entity Relationship Diagram
-├── includes/
-│   ├── header.php            # Shared HTML head, CSS stylesheets & meta tags
-│   ├── navbar.php            # Responsive top navigation with active-route highlights
-│   ├── footer.php            # Shared footer, script bundles & main.js loader
-│   ├── auth_check.php        # Session access guard blocking unauthorized visitors
-│   └── functions.php         # Global helpers (e() escape, flash messages, member number)
-├── auth/
-│   ├── login.php             # Secure login form with password_verify & session regeneration
-│   └── logout.php            # Session destruction and redirection
-├── dashboard/
-│   └── index.php             # Statistics summary, key metrics, recent loans & overdue alerts
-├── books/
-│   ├── index.php             # Search, category filter & table listing
-│   ├── create.php            # Add new book with unique ISBN & stock validation
-│   ├── edit.php              # Edit book metadata & copy counts
-│   ├── delete.php            # Guarded deletion preventing removal of books with active loans
-│   └── export.php            # Bonus: Export books catalog to CSV
-├── members/
-│   ├── index.php             # Search by name/number, filter by status (active/suspended)
-│   ├── create.php            # Register new member with auto-generated member number
-│   ├── edit.php              # Update member contact information and status
-│   ├── delete.php            # Guarded deletion preventing removal of members with active loans
-│   └── export.php            # Bonus: Export members roster to CSV
-├── loans/
-│   ├── index.php             # Complete loans log with search & computed status filters
-│   ├── issue.php             # Issue book with transaction, stock decrement, 14-day due date
-│   ├── return.php            # Return book with transaction, stock increment, fine calculator
-│   └── export.php            # Bonus: Export loans report to CSV
-├── authors/
-│   ├── index.php             # List authors with book counts & search
-│   ├── create.php            # Add author with uniqueness validation
-│   ├── edit.php              # Edit author profile
-│   └── delete.php            # Guarded deletion preventing removal of authors with books
-├── categories/
-│   ├── index.php             # List categories with book counts & search
-│   ├── create.php            # Add category
-│   ├── edit.php              # Edit category
-│   └── delete.php            # Guarded deletion preventing removal of categories with books
-├── assets/
-│   ├── css/
-│   │   └── style.css         # Custom responsive styles, badges, stat cards & layout
-│   └── js/
-│       └── main.js           # Modal confirmations, live search filter, alert auto-dismiss
-└── docs/
-    └── report.md             # Comprehensive Academic Report (3NF, ERD, Rules, Code Design)
-```
+> Change or remove demo credentials before using the application in production.
 
----
+## Database design
 
-## 6. Business Rules & Enforcement
+<p align="center">
+  <img src="database/erd.png" alt="LibraryMS entity relationship diagram" width="850">
+</p>
 
-All business rules outlined in the project brief are enforced in the PHP backend logic:
+The database separates authors, categories and sub-categories from books, while a `book_authors` table supports primary authors, co-authors, editors and translators. Members and staff users create loan records for individual books. `ON DELETE` constraints and application checks protect important historical and inventory relationships.
 
-1. **Copy Availability Rule:**
-   - A book with zero available copies (`available_copies = 0`) cannot be issued.
-   - Enforced in `loans/issue.php`: the dropdown only displays books with `available_copies > 0`, and the backend query re-verifies availability using row-level locking (`SELECT ... FOR UPDATE`).
+## Business rules
 
-2. **Atomic Inventory Transaction Rule:**
-   - Issuing a book decrements `available_copies` by 1 and creates the loan record.
-   - Returning a book increments `available_copies` by 1 and updates `date_returned` and status.
-   - Both operations use **Database Transactions** (`$pdo->beginTransaction()`, `$pdo->commit()`, `$pdo->rollBack()`). Either both changes succeed or neither does.
+- Members must be active before borrowing.
+- A member cannot have two active loans for the same book.
+- A book cannot be issued when `available_copies` is zero.
+- Loans receive an automatic 14-day due date.
+- Issue and return operations use database transactions.
+- Overdue returns calculate a fine of $0.50 per overdue day.
+- Records linked to active loans or other records are protected from unsafe deletion.
 
-3. **Single Borrowing Rule:**
-   - A member cannot borrow two copies of the same book at the same time.
-   - Enforced in `loans/issue.php`:
-     ```sql
-     SELECT COUNT(*) FROM loans WHERE member_id = ? AND book_id = ? AND date_returned IS NULL
-     ```
-     If the count is greater than zero, issuing is blocked with a clear error message.
+## Useful SQL
 
-4. **Member Suspension Rule:**
-   - Suspended members cannot borrow books.
-   - Enforced in `loans/issue.php`: only members with `status = 'active'` appear in the selection menu, and the backend validates `status === 'active'`.
+Additional reporting queries are available in [database/queries.sql](database/queries.sql), including:
 
-5. **Automated Due Date:**
-   - When a book is issued, the due date is calculated automatically as **exactly 14 days** from the issue date (`date('Y-m-d', strtotime('+14 days'))`). Users cannot tamper with the date.
+- Currently borrowed books
+- Overdue loans and days overdue
+- Loans per category
+- Available copies against borrowed copies
+- Members with the most loans
+- Books that have never been borrowed
 
-6. **Referential Integrity & Safe Deletion:**
-   - Books with unreturned loans cannot be deleted (`books/delete.php`).
-   - Members with unreturned books cannot be deleted (`members/delete.php`).
-   - Authors or Categories currently assigned to existing books cannot be deleted (`authors/delete.php`, `categories/delete.php`).
-   - Friendly user feedback is displayed; raw SQL foreign key exceptions are caught gracefully.
+## Team & attribution
 
----
+**Project lead:** **EGABO AARON**
 
-## 7. Bonus Features Implemented (Extra Marks)
+The supplied team register contains the following twelve names and registration numbers:
 
-1. **Automatic Late Fine Calculation:**
-   - When returning a book after its due date, the system automatically calculates the number of overdue days and assesses a late fine at **$0.50 per day**.
-   - The user is notified immediately via a detailed flash banner upon return.
+| # | Member | Registration number |
+|---:|---|---:|
+| 1 | EGABO AARON — **Group Lead** | 258-154 |
+| 2 | ALIMPA ANNE HILLARY | 269-896 |
+| 3 | KABAJUNGU RITAH | 267-640 |
+| 4 | KIRABO ALICE | 274-961 |
+| 5 | MUAWIA MOHAMED | 229-449 |
+| 6 | IBRAHIM ISHAG | — |
+| 7 | NATOZO PATIENCE | 258-901 |
+| 8 | MARTHA | — |
+| 9 | NIWASIIMA ASHELYCOLE | 275-353 |
+| 10 | ONYANGO JOHN STEVEN | 270-472 |
+| 11 | RWOTHOMIO EVANS, E. | 275-372 |
+| 12 | TUSABEGE PHILBERT | 272-210 |
 
-2. **Interactive Dashboard Metrics:**
-   - Real-time statistics cards: Total Books, Registered Members, Active Loans, and Overdue Count.
-   - A dedicated **Overdue Books Alert Box** with direct contact information for quick librarian follow-up.
-   - Live **Recent Loans Table** with color-coded status badges.
+## Security
 
-3. **One-Click CSV Data Export:**
-   - Integrated export buttons on Books, Members, and Loans listings that generate RFC-compliant downloadable `.csv` spreadsheets for reporting and audits.
+- PDO prepared statements prevent SQL injection
+- Passwords are stored with PHP `password_hash()` and checked with `password_verify()`
+- Output is escaped with `htmlspecialchars()` through the shared `e()` helper
+- Protected pages check the staff session
+- Successful login regenerates the PHP session ID
+- Database availability and duplicate-loan rules are checked again during transactions
 
-4. **Role-Based Badges & Navigation:**
-   - Visual user indicators distinguishing Admin vs. Librarian roles.
+## License
 
-5. **Client-Side Confirmation & Auto-Dismissing Alerts:**
-   - Destructive operations prompt for user confirmation via JavaScript `data-confirm`.
-   - Notification banners automatically fade out after 5 seconds to reduce UI clutter.
+This project is licensed under the **MIT License**. See [LICENSE](LICENSE) for the full text.
 
----
-
-## 8. Sample Database Records
-The database file `database/library_db.sql` automatically populates:
-- **5 Categories:** Fiction, Non-Fiction, Science, History, Technology
-- **5 Authors:** George Orwell, Yuval Noah Harari, Stephen Hawking, Yuval Sapiens, Robert C. Martin
-- **10 Books:** Including *Clean Code*, *1984*, *A Brief History of Time*, *Sapiens*, *The Grand Design*
-- **10 Members:** Alice Johnson, Bob Smith, Carol Williams, David Brown, Eva Martinez, Frank Lee, Grace Kim (Suspended), Henry Davis, Irene Wilson, James Taylor
-- **2 Users:** `admin` (System Administrator), `librarian` (Head Librarian)
-- **10 Loans:**
-  - 3 Returned (complete historical loans)
-  - 4 Active (currently out, within 14-day loan window)
-  - 3 Overdue (out past due date, highlighting overdue alerts and fine calculation)
-
----
-
-## 9. Security & Hardening Checklist
-- **SQL Injection Prevention:** Every dynamic database interaction uses PDO prepared statements with bounded parameters (`$stmt->prepare()` + `$stmt->execute()`). Zero concatenated queries.
-- **Cross-Site Scripting (XSS) Prevention:** All output rendered into HTML is sanitized using `htmlspecialchars(..., ENT_QUOTES, 'UTF-8')` via the `e()` helper function.
-- **Session Protection:** All administrative pages include `auth_check.php` before generating output. Unauthenticated requests are redirected to `auth/login.php`.
-- **Session Hijacking Mitigation:** Upon successful login, `session_regenerate_id(true)` is executed.
-- **Password Security:** Hashes are generated and verified via PHP's cryptographic functions `password_hash()` and `password_verify()`.
+Copyright (c) 2026 EGABO AARON and contributors.
