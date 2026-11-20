@@ -153,7 +153,7 @@ require_once __DIR__ . '/../includes/navbar.php';
                             Phone Number <span class="text-muted small fw-normal">(optional)</span>
                         </label>
                         <input type="tel" id="phone" name="phone" class="form-control" value="<?= e($old['phone']) ?>"
-                            placeholder="e.g. +1 555-0199">
+                            placeholder="e.g. +256 701 234567">
                         <div class="form-text text-muted">Used for overdue loan notifications.</div>
                     </div>
                 </div>

@@ -146,16 +146,16 @@ function init_sqlite_database(PDO $pdo) {
     // Seed Members
     $pdo->exec("
     INSERT OR IGNORE INTO members (member_id, member_no, full_name, email, phone, status, date_joined) VALUES
-    (1, 'MEM001', 'Alice Johnson', 'alice.johnson@email.com', '555-0101', 'active', '2023-01-15'),
-    (2, 'MEM002', 'Bob Smith', 'bob.smith@email.com', '555-0102', 'active', '2023-02-20'),
-    (3, 'MEM003', 'Carol Williams', 'carol.williams@email.com', '555-0103', 'active', '2023-03-10'),
-    (4, 'MEM004', 'David Brown', 'david.brown@email.com', '555-0104', 'active', '2023-04-05'),
-    (5, 'MEM005', 'Emma Jones', 'emma.jones@email.com', '555-0105', 'active', '2023-05-12'),
-    (6, 'MEM006', 'Frank Miller', 'frank.miller@email.com', '555-0106', 'active', '2023-06-18'),
-    (7, 'MEM007', 'Grace Wilson', 'grace.wilson@email.com', '555-0107', 'active', '2023-07-22'),
-    (8, 'MEM008', 'Henry Moore', 'henry.moore@email.com', '555-0108', 'active', '2023-08-30'),
-    (9, 'MEM009', 'Ivy Taylor', 'ivy.taylor@email.com', '555-0109', 'suspended', '2023-09-14'),
-    (10, 'MEM010', 'Jack Anderson', 'jack.anderson@email.com', '555-0110', 'active', '2023-10-01');
+    (1, 'MEM001', 'Alice Johnson', 'alice.johnson@email.com', '+256 772 101001', 'active', '2023-01-15'),
+    (2, 'MEM002', 'Bob Smith', 'bob.smith@email.com', '+256 701 202002', 'active', '2023-02-20'),
+    (3, 'MEM003', 'Carol Williams', 'carol.williams@email.com', '+256 782 303003', 'active', '2023-03-10'),
+    (4, 'MEM004', 'David Brown', 'david.brown@email.com', '+256 752 404004', 'active', '2023-04-05'),
+    (5, 'MEM005', 'Emma Jones', 'emma.jones@email.com', '+256 774 505005', 'active', '2023-05-12'),
+    (6, 'MEM006', 'Frank Miller', 'frank.miller@email.com', '+256 703 606006', 'active', '2023-06-18'),
+    (7, 'MEM007', 'Grace Wilson', 'grace.wilson@email.com', '+256 788 707007', 'active', '2023-07-22'),
+    (8, 'MEM008', 'Henry Moore', 'henry.moore@email.com', '+256 756 808008', 'active', '2023-08-30'),
+    (9, 'MEM009', 'Ivy Taylor', 'ivy.taylor@email.com', '+256 776 909009', 'suspended', '2023-09-14'),
+    (10, 'MEM010', 'Jack Anderson', 'jack.anderson@email.com', '+256 705 010010', 'active', '2023-10-01');
     ");
 
     // Seed Users (password: 'password')
