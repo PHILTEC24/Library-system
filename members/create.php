@@ -4,21 +4,22 @@ require_once __DIR__ . '/../includes/auth_check.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/functions.php';
 
+$pageTitle = 'Add Member';
 $errors = [];
-$old    = [];
+$old = [];
 
-// Auto-generate a unique member number using shared helper
+// Auto-generate unique member number
 $defaultMemberNumber = generateMemberNumber($pdo);
-$defaultDateJoined   = date('Y-m-d');
+$defaultDateJoined = date('Y-m-d');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $old = [
-        'full_name'     => trim($_POST['full_name']     ?? ''),
-        'email'         => trim($_POST['email']          ?? ''),
-        'phone'         => trim($_POST['phone']          ?? ''),
-        'status'        => $_POST['status']              ?? 'active',
-        'member_number' => trim($_POST['member_number']  ?? ''),
-        'date_joined'   => trim($_POST['date_joined']    ?? ''),
+        'full_name' => trim($_POST['full_name'] ?? ''),
+        'email' => trim($_POST['email'] ?? ''),
+        'phone' => trim($_POST['phone'] ?? ''),
+        'status' => $_POST['status'] ?? 'active',
+        'member_number' => trim($_POST['member_number'] ?? ''),
+        'date_joined' => trim($_POST['date_joined'] ?? ''),
     ];
 
     // Validation
@@ -70,18 +71,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $old['date_joined'],
         ]);
 
-        setFlash('success', 'Member added successfully.');
-        header('Location: ' . BASE_URL . '/members/index.php');
-        exit;
+        setFlash('success', 'Member "' . e($old['full_name']) . '" added successfully.');
+        redirect(BASE_URL . '/members/index.php');
     }
 } else {
     $old = [
-        'full_name'     => '',
-        'email'         => '',
-        'phone'         => '',
-        'status'        => 'active',
+        'full_name' => '',
+        'email' => '',
+        'phone' => '',
+        'status' => 'active',
         'member_number' => $defaultMemberNumber,
-        'date_joined'   => $defaultDateJoined,
+        'date_joined' => $defaultDateJoined,
     ];
 }
 
@@ -89,99 +89,142 @@ require_once __DIR__ . '/../includes/header.php';
 require_once __DIR__ . '/../includes/navbar.php';
 ?>
 
-<main class="container py-4" style="max-width:720px;">
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="mb-0"><i class="bi bi-person-plus-fill me-2"></i>Add Member</h2>
-    <a href="<?= BASE_URL ?>/members/index.php" class="btn btn-outline-secondary">
-      <i class="bi bi-arrow-left me-1"></i>Back
-    </a>
-  </div>
+<!-- Page Header (Section 6.1 & 7.4) -->
+<?= page_header(
+    'Add member',
+    'Register a new reader and assign library borrowing privileges',
+    '<a href="' . BASE_URL . '/members/index.php" class="btn btn-secondary">' .
+    '<i class="bi bi-arrow-left me-1"></i>Back to Members' .
+    '</a>'
+) ?>
 
-  <?php if ($errors): ?>
-    <div class="alert alert-danger">
-      <strong>Please fix the following errors:</strong>
-      <ul class="mb-0 mt-1">
-        <?php foreach ($errors as $err): ?>
-          <li><?= e($err) ?></li>
-        <?php endforeach; ?>
-      </ul>
+<?php if (!empty($errors)): ?>
+    <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
+        <div class="d-flex align-items-center gap-2 mb-2">
+            <i class="bi bi-exclamation-octagon-fill fs-5 text-danger"></i>
+            <h6 class="mb-0 fw-bold">Please correct the following errors:</h6>
+        </div>
+        <ul class="mb-0 ps-3">
+            <?php foreach ($errors as $err): ?>
+                <li><?= e($err) ?></li>
+            <?php endforeach; ?>
+        </ul>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
-  <?php endif; ?>
+<?php endif; ?>
 
-  <div class="card shadow-sm">
-    <div class="card-body p-4">
-      <form method="POST" action="" novalidate>
+<form method="POST" action="" novalidate>
+    <div class="row g-4">
+        <!-- Card 1: Personal Details -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm border h-100">
+                <div class="card-header bg-white py-3">
+                    <h5 class="card-title fs-6 mb-0 fw-bold text-dark d-flex align-items-center gap-2">
+                        <i class="bi bi-person text-primary"></i> Personal Details
+                    </h5>
+                </div>
+                <div class="card-body p-4">
+                    <div class="mb-3">
+                        <label for="full_name" class="form-label fw-semibold text-dark">
+                            Full Name <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" id="full_name" name="full_name"
+                            class="form-control <?= isset($errors['full_name']) ? 'is-invalid' : '' ?>"
+                            value="<?= e($old['full_name']) ?>" required autofocus placeholder="e.g. Eleanor Vance">
+                        <?php if (isset($errors['full_name'])): ?>
+                            <div class="invalid-feedback"><?= e($errors['full_name']) ?></div>
+                        <?php endif; ?>
+                    </div>
 
-        <!-- Full Name -->
-        <div class="mb-3">
-          <label for="full_name" class="form-label fw-semibold">Full Name <span class="text-danger">*</span></label>
-          <input type="text" id="full_name" name="full_name" class="form-control <?= isset($errors['full_name']) ? 'is-invalid' : '' ?>"
-                 value="<?= e($old['full_name']) ?>" required>
-          <?php if (isset($errors['full_name'])): ?>
-            <div class="invalid-feedback"><?= e($errors['full_name']) ?></div>
-          <?php endif; ?>
+                    <div class="mb-3">
+                        <label for="email" class="form-label fw-semibold text-dark">
+                            Email Address <span class="text-danger">*</span>
+                        </label>
+                        <input type="email" id="email" name="email"
+                            class="form-control <?= isset($errors['email']) ? 'is-invalid' : '' ?>"
+                            value="<?= e($old['email']) ?>" required placeholder="name@example.com">
+                        <?php if (isset($errors['email'])): ?>
+                            <div class="invalid-feedback"><?= e($errors['email']) ?></div>
+                        <?php endif; ?>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="phone" class="form-label fw-semibold text-dark">
+                            Phone Number <span class="text-muted small fw-normal">(optional)</span>
+                        </label>
+                        <input type="tel" id="phone" name="phone" class="form-control" value="<?= e($old['phone']) ?>"
+                            placeholder="e.g. +1 555-0199">
+                        <div class="form-text text-muted">Used for overdue loan notifications.</div>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <!-- Email -->
-        <div class="mb-3">
-          <label for="email" class="form-label fw-semibold">Email <span class="text-danger">*</span></label>
-          <input type="email" id="email" name="email" class="form-control <?= isset($errors['email']) ? 'is-invalid' : '' ?>"
-                 value="<?= e($old['email']) ?>" required>
-          <?php if (isset($errors['email'])): ?>
-            <div class="invalid-feedback"><?= e($errors['email']) ?></div>
-          <?php endif; ?>
+        <!-- Card 2: Membership Particulars -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm border h-100">
+                <div class="card-header bg-white py-3">
+                    <h5 class="card-title fs-6 mb-0 fw-bold text-dark d-flex align-items-center gap-2">
+                        <i class="bi bi-card-heading text-primary"></i> Membership Account
+                    </h5>
+                </div>
+                <div class="card-body p-4">
+                    <div class="mb-3">
+                        <label for="member_number" class="form-label fw-semibold text-dark">
+                            Member Number <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" id="member_number" name="member_number"
+                            class="form-control <?= isset($errors['member_number']) ? 'is-invalid' : '' ?>"
+                            value="<?= e($old['member_number']) ?>" required>
+                        <div class="form-text text-muted">Auto-generated format (MEMxxxxx). Editable if needed.</div>
+                        <?php if (isset($errors['member_number'])): ?>
+                            <div class="invalid-feedback"><?= e($errors['member_number']) ?></div>
+                        <?php endif; ?>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-dark d-block">Account Status</label>
+                        <div class="btn-group w-100" role="group" aria-label="Membership status">
+                            <input type="radio" class="btn-check" name="status" id="status_active" value="active"
+                                <?= $old['status'] === 'active' ? 'checked' : '' ?>>
+                            <label class="btn btn-outline-success" for="status_active">
+                                <i class="bi bi-check-circle me-1"></i>Active
+                            </label>
+
+                            <input type="radio" class="btn-check" name="status" id="status_suspended" value="suspended"
+                                <?= $old['status'] === 'suspended' ? 'checked' : '' ?>>
+                            <label class="btn btn-outline-danger" for="status_suspended">
+                                <i class="bi bi-pause-circle me-1"></i>Suspended
+                            </label>
+                        </div>
+                        <div class="form-text text-muted mt-1">Suspended members cannot borrow books.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="date_joined" class="form-label fw-semibold text-dark">
+                            Date Joined <span class="text-danger">*</span>
+                        </label>
+                        <input type="date" id="date_joined" name="date_joined"
+                            class="form-control <?= isset($errors['date_joined']) ? 'is-invalid' : '' ?>"
+                            value="<?= e($old['date_joined']) ?>" required>
+                        <?php if (isset($errors['date_joined'])): ?>
+                            <div class="invalid-feedback"><?= e($errors['date_joined']) ?></div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <!-- Phone -->
-        <div class="mb-3">
-          <label for="phone" class="form-label fw-semibold">Phone <span class="text-muted small">(optional)</span></label>
-          <input type="text" id="phone" name="phone" class="form-control"
-                 value="<?= e($old['phone']) ?>">
+        <!-- Sticky Action Bar -->
+        <div class="col-12">
+            <div class="d-flex align-items-center justify-content-end gap-2 p-3 bg-white border rounded shadow-sm">
+                <a href="<?= BASE_URL ?>/members/index.php" class="btn btn-secondary px-4">Cancel</a>
+                <button type="submit" class="btn btn-primary px-4">
+                    <i class="bi bi-check-lg me-1"></i>Add member
+                </button>
+            </div>
         </div>
-
-        <!-- Status -->
-        <div class="mb-3">
-          <label for="status" class="form-label fw-semibold">Status</label>
-          <select id="status" name="status" class="form-select">
-            <option value="active"    <?= $old['status'] === 'active'    ? 'selected' : '' ?>>Active</option>
-            <option value="suspended" <?= $old['status'] === 'suspended' ? 'selected' : '' ?>>Suspended</option>
-          </select>
-        </div>
-
-        <!-- Member Number -->
-        <div class="mb-3">
-          <label for="member_number" class="form-label fw-semibold">
-            Member Number <span class="text-danger">*</span>
-            <span class="text-muted small ms-1">(auto-generated, editable)</span>
-          </label>
-          <input type="text" id="member_number" name="member_number"
-                 class="form-control <?= isset($errors['member_number']) ? 'is-invalid' : '' ?>"
-                 value="<?= e($old['member_number']) ?>">
-          <?php if (isset($errors['member_number'])): ?>
-            <div class="invalid-feedback"><?= e($errors['member_number']) ?></div>
-          <?php endif; ?>
-        </div>
-
-        <!-- Date Joined -->
-        <div class="mb-4">
-          <label for="date_joined" class="form-label fw-semibold">Date Joined <span class="text-danger">*</span></label>
-          <input type="date" id="date_joined" name="date_joined"
-                 class="form-control <?= isset($errors['date_joined']) ? 'is-invalid' : '' ?>"
-                 value="<?= e($old['date_joined']) ?>">
-          <?php if (isset($errors['date_joined'])): ?>
-            <div class="invalid-feedback"><?= e($errors['date_joined']) ?></div>
-          <?php endif; ?>
-        </div>
-
-        <div class="d-flex gap-2">
-          <button type="submit" class="btn btn-primary">
-            <i class="bi bi-check-lg me-1"></i>Save Member
-          </button>
-          <a href="<?= BASE_URL ?>/members/index.php" class="btn btn-outline-secondary">Cancel</a>
-        </div>
-      </form>
     </div>
-  </div>
-</main>
+</form>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>
