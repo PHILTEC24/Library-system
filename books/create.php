@@ -8,9 +8,9 @@ $pageTitle = 'Add Book';
 $errors = [];
 $old = [];
 
-$authors       = $pdo->query('SELECT id, name FROM authors ORDER BY name')->fetchAll();
-$categories    = $pdo->query('SELECT id, name FROM categories ORDER BY name')->fetchAll();
-$subcategories = $pdo->query('SELECT s.id, s.name, s.category_id, c.name AS category_name FROM subcategories s JOIN categories c ON s.category_id = c.id ORDER BY c.name, s.name')->fetchAll();
+$authors       = $pdo->query('SELECT author_id AS id, name FROM authors ORDER BY name')->fetchAll();
+$categories    = $pdo->query('SELECT category_id AS id, name FROM categories ORDER BY name')->fetchAll();
+$subcategories = $pdo->query('SELECT s.sub_category_id AS id, s.name, s.category_id, c.name AS category_name FROM sub_categories s JOIN categories c ON s.category_id = c.category_id ORDER BY c.name, s.name')->fetchAll();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $old = $_POST;
@@ -28,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($isbn === '') {
         $errors['isbn'] = 'ISBN is required.';
     } else {
-        $chk = $pdo->prepare('SELECT id FROM books WHERE isbn = ?');
+        $chk = $pdo->prepare('SELECT book_id FROM books WHERE isbn = ?');
         $chk->execute([$isbn]);
         if ($chk->fetch()) {
             $errors['isbn'] = 'This ISBN already exists.';
@@ -47,6 +47,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors['category_id'] = 'Please select a category.';
     }
 
+    if ($subcategory_id <= 0 && $category_id > 0) {
+        $firstSub = $pdo->prepare('SELECT sub_category_id FROM sub_categories WHERE category_id = ? LIMIT 1');
+        $firstSub->execute([$category_id]);
+        $subcategory_id = intval($firstSub->fetchColumn() ?: 0);
+    }
+
+    if ($subcategory_id <= 0) {
+        $errors['subcategory_id'] = 'Please select a valid subcategory for this book.';
+    }
+
     if ($year_published !== '') {
         $yr = intval($year_published);
         if ($yr < 1000 || $yr > intval(date('Y'))) {
@@ -59,24 +69,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (empty($errors)) {
-        $stmt = $pdo->prepare(
-            "INSERT INTO books (isbn, title, author_id, category_id, subcategory_id, publisher, year_published, total_copies, available_copies)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
-        );
-        $stmt->execute([
-            $isbn,
-            $title,
-            $author_id ?: null,
-            $category_id ?: null,
-            $subcategory_id ?: null,
-            $publisher !== '' ? $publisher : null,
-            $year_published !== '' ? intval($year_published) : null,
-            $total_copies,
-            $total_copies,
-        ]);
-        setFlash('success', 'Book "' . htmlspecialchars($title) . '" added successfully.');
-        header('Location: ' . BASE_URL . '/books/index.php');
-        exit;
+        try {
+            $pdo->beginTransaction();
+            $stmt = $pdo->prepare(
+                "INSERT INTO books (isbn, title, sub_category_id, publisher, year_published, total_copies, available_copies)
+                 VALUES (?, ?, ?, ?, ?, ?, ?)"
+            );
+            $stmt->execute([
+                $isbn,
+                $title,
+                $subcategory_id,
+                $publisher !== '' ? $publisher : null,
+                $year_published !== '' ? intval($year_published) : null,
+                $total_copies,
+                $total_copies,
+            ]);
+            $newBookId = $pdo->lastInsertId();
+            if ($author_id > 0) {
+                $baStmt = $pdo->prepare("INSERT INTO book_authors (book_id, author_id, author_role) VALUES (?, ?, 'primary')");
+                $baStmt->execute([$newBookId, $author_id]);
+            }
+            $pdo->commit();
+            setFlash('success', 'Book "' . htmlspecialchars($title) . '" added successfully.');
+            header('Location: ' . BASE_URL . '/books/index.php');
+            exit;
+        } catch (Exception $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            $errors['general'] = 'Failed to add book: ' . $e->getMessage();
+        }
     }
 }
 

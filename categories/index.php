@@ -7,9 +7,10 @@ require_once __DIR__ . '/../includes/functions.php';
 $pageTitle = 'Categories';
 $search = trim($_GET['search'] ?? '');
 
-$sql = "SELECT c.id, c.name, c.description, COUNT(b.id) AS book_count
+$sql = "SELECT c.category_id AS id, c.category_id, c.name, c.description, COUNT(b.book_id) AS book_count
         FROM categories c
-        LEFT JOIN books b ON b.category_id = c.id";
+        LEFT JOIN sub_categories sc ON sc.category_id = c.category_id
+        LEFT JOIN books b ON b.sub_category_id = sc.sub_category_id";
 
 $params = [];
 if ($search !== '') {
@@ -17,7 +18,7 @@ if ($search !== '') {
     $params[] = '%' . $search . '%';
 }
 
-$sql .= " GROUP BY c.id, c.name, c.description ORDER BY c.name ASC";
+$sql .= " GROUP BY c.category_id, c.name, c.description ORDER BY c.name ASC";
 
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);

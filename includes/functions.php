@@ -51,7 +51,7 @@ function generateMemberNumber($pdo = null) {
         if (!$pdo) {
             return $number;
         }
-        $stmt = $pdo->prepare('SELECT id FROM members WHERE member_number = ? LIMIT 1');
+        $stmt = $pdo->prepare('SELECT member_id FROM members WHERE member_no = ? LIMIT 1');
         $stmt->execute([$number]);
     } while ($stmt->fetch());
     return $number;

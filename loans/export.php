@@ -11,7 +11,7 @@ $output = fopen('php://output', 'w');
 // Header row
 fputcsv($output, ['Loan ID', 'Book Title', 'ISBN', 'Member Name', 'Member Number', 'Date Issued', 'Due Date', 'Date Returned', 'Status']);
 
-$sql = "SELECT l.id, b.title AS book_title, b.isbn, m.full_name AS member_name, m.member_number,
+$sql = "SELECT l.loan_id AS id, b.title AS book_title, b.isbn, m.full_name AS member_name, m.member_no AS member_number,
                l.date_issued, l.due_date, l.date_returned,
                CASE
                    WHEN l.date_returned IS NOT NULL THEN 'returned'
@@ -19,9 +19,9 @@ $sql = "SELECT l.id, b.title AS book_title, b.isbn, m.full_name AS member_name, 
                    ELSE 'active'
                END AS status
         FROM loans l
-        LEFT JOIN books b ON l.book_id = b.id
-        LEFT JOIN members m ON l.member_id = m.id
-        ORDER BY l.id DESC";
+        LEFT JOIN books b ON l.book_id = b.book_id
+        LEFT JOIN members m ON l.member_id = m.member_id
+        ORDER BY l.loan_id DESC";
 
 $stmt = $pdo->query($sql);
 while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {

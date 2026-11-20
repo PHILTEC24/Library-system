@@ -14,18 +14,18 @@ $overdueLoans  = $pdo->query("SELECT COUNT(*) FROM loans WHERE date_returned IS 
 
 // Recent loans
 $recentLoans = $pdo->query(
-    "SELECT l.id, b.title, m.full_name, l.date_issued, l.due_date, l.date_returned,
+    "SELECT l.loan_id AS id, b.title, m.full_name, l.date_issued, l.due_date, l.date_returned,
             CASE WHEN l.date_returned IS NOT NULL THEN 'returned'
                  WHEN l.due_date < CURDATE() THEN 'overdue'
                  ELSE 'active' END AS loan_status
-     FROM loans l JOIN books b ON l.book_id=b.id JOIN members m ON l.member_id=m.id
-     ORDER BY l.id DESC LIMIT 10"
+     FROM loans l JOIN books b ON l.book_id=b.book_id JOIN members m ON l.member_id=m.member_id
+     ORDER BY l.loan_id DESC LIMIT 10"
 )->fetchAll();
 
 // Overdue list
 $overdueList = $pdo->query(
     "SELECT b.title, m.full_name, m.phone, l.due_date, DATEDIFF(CURDATE(), l.due_date) AS days_overdue
-     FROM loans l JOIN books b ON l.book_id=b.id JOIN members m ON l.member_id=m.id
+     FROM loans l JOIN books b ON l.book_id=b.book_id JOIN members m ON l.member_id=m.member_id
      WHERE l.date_returned IS NULL AND l.due_date < CURDATE()
      ORDER BY days_overdue DESC LIMIT 5"
 )->fetchAll();

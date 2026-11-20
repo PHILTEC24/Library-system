@@ -21,7 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (empty($errors)) {
         // 1. Validate Member
-        $mStmt = $pdo->prepare('SELECT id, member_number, full_name, status FROM members WHERE id = ?');
+        $mStmt = $pdo->prepare('SELECT member_id AS id, member_id, member_no AS member_number, full_name, status FROM members WHERE member_id = ?');
         $mStmt->execute([$member_id]);
         $member = $mStmt->fetch();
 
@@ -33,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         // 2. Validate Book
-        $bStmt = $pdo->prepare('SELECT id, isbn, title, available_copies FROM books WHERE id = ?');
+        $bStmt = $pdo->prepare('SELECT book_id AS id, book_id, isbn, title, available_copies FROM books WHERE book_id = ?');
         $bStmt->execute([$book_id]);
         $book = $bStmt->fetch();
 
@@ -48,9 +48,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // A member can only borrow one book and cannot borrow again until the previous book is returned (cleared loan).
         if (empty($errors)) {
             $activeStmt = $pdo->prepare(
-                'SELECT l.id, b.title 
+                'SELECT l.loan_id AS id, b.title 
                  FROM loans l 
-                 JOIN books b ON l.book_id = b.id 
+                 JOIN books b ON l.book_id = b.book_id 
                  WHERE l.member_id = ? AND l.date_returned IS NULL 
                  LIMIT 1'
             );
@@ -70,7 +70,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $pdo->beginTransaction();
 
                 // Re-check available copies with row lock (FOR UPDATE)
-                $lockStmt = $pdo->prepare('SELECT available_copies FROM books WHERE id = ? FOR UPDATE');
+                $lockStmt = $pdo->prepare('SELECT available_copies FROM books WHERE book_id = ? FOR UPDATE');
                 $lockStmt->execute([$book_id]);
                 $currentAvail = (int)$lockStmt->fetchColumn();
 
@@ -79,13 +79,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 // Insert loan record
+                $issuedBy = $_SESSION['user_id'] ?? 1;
                 $loanStmt = $pdo->prepare(
-                    'INSERT INTO loans (member_id, book_id, date_issued, due_date, status) VALUES (?, ?, ?, ?, "active")'
+                    'INSERT INTO loans (member_id, book_id, issued_by, date_issued, due_date) VALUES (?, ?, ?, ?, ?)'
                 );
-                $loanStmt->execute([$member_id, $book_id, $dateIssued, $dueDate]);
+                $loanStmt->execute([$member_id, $book_id, $issuedBy, $dateIssued, $dueDate]);
 
                 // Reduce available copies by 1
-                $updStmt = $pdo->prepare('UPDATE books SET available_copies = available_copies - 1 WHERE id = ?');
+                $updStmt = $pdo->prepare('UPDATE books SET available_copies = available_copies - 1 WHERE book_id = ?');
                 $updStmt->execute([$book_id]);
 
                 $pdo->commit();
@@ -104,15 +105,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Fetch active members with their active loan counts
 $members = $pdo->query('
-    SELECT m.id, m.member_number, m.full_name,
-           (SELECT COUNT(*) FROM loans l WHERE l.member_id = m.id AND l.date_returned IS NULL) AS active_loans
+    SELECT m.member_id AS id, m.member_no AS member_number, m.full_name,
+           (SELECT COUNT(*) FROM loans l WHERE l.member_id = m.member_id AND l.date_returned IS NULL) AS active_loans
     FROM members m 
     WHERE m.status = "active" 
     ORDER BY m.full_name ASC
 ')->fetchAll();
 
 // Fetch books with available copies > 0
-$books = $pdo->query('SELECT id, isbn, title, available_copies, total_copies FROM books WHERE available_copies > 0 ORDER BY title ASC')->fetchAll();
+$books = $pdo->query('SELECT book_id AS id, isbn, title, available_copies, total_copies FROM books WHERE available_copies > 0 ORDER BY title ASC')->fetchAll();
 
 require_once __DIR__ . '/../includes/header.php';
 require_once __DIR__ . '/../includes/navbar.php';

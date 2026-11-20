@@ -10,13 +10,16 @@ $catFilter = intval($_GET['category'] ?? 0);
 $subFilter = intval($_GET['subcategory'] ?? 0);
 
 $params = [];
-$sql = "SELECT b.id, b.isbn, b.title, b.publisher, b.year_published,
+$sql = "SELECT b.book_id AS id, b.isbn, b.title, b.publisher, b.year_published,
                b.total_copies, b.available_copies,
-               a.name AS author_name, c.name AS category_name, s.name AS subcategory_name
+               GROUP_CONCAT(DISTINCT a.name ORDER BY (ba.author_role='primary') DESC, a.name SEPARATOR ', ') AS author_name,
+               c.name AS category_name,
+               s.name AS subcategory_name
         FROM books b
-        LEFT JOIN authors a ON b.author_id = a.id
-        LEFT JOIN categories c ON b.category_id = c.id
-        LEFT JOIN subcategories s ON b.subcategory_id = s.id
+        LEFT JOIN book_authors ba ON b.book_id = ba.book_id
+        LEFT JOIN authors a ON ba.author_id = a.author_id
+        LEFT JOIN sub_categories s ON b.sub_category_id = s.sub_category_id
+        LEFT JOIN categories c ON s.category_id = c.category_id
         WHERE 1=1";
 
 if ($search !== '') {
@@ -24,20 +27,20 @@ if ($search !== '') {
     $params[] = "%$search%"; $params[] = "%$search%"; $params[] = "%$search%"; $params[] = "%$search%"; $params[] = "%$search%";
 }
 if ($catFilter > 0) {
-    $sql .= " AND b.category_id = ?";
+    $sql .= " AND s.category_id = ?";
     $params[] = $catFilter;
 }
 if ($subFilter > 0) {
-    $sql .= " AND b.subcategory_id = ?";
+    $sql .= " AND b.sub_category_id = ?";
     $params[] = $subFilter;
 }
-$sql .= " ORDER BY b.title ASC";
+$sql .= " GROUP BY b.book_id, b.isbn, b.title, b.publisher, b.year_published, b.total_copies, b.available_copies, c.name, s.name ORDER BY b.title ASC";
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $books = $stmt->fetchAll();
 
-$categories = $pdo->query('SELECT id, name FROM categories ORDER BY name')->fetchAll();
-$subcategories = $pdo->query('SELECT s.id, s.name, s.category_id, c.name AS category_name FROM subcategories s JOIN categories c ON s.category_id = c.id ORDER BY c.name, s.name')->fetchAll();
+$categories = $pdo->query('SELECT category_id AS id, name FROM categories ORDER BY name')->fetchAll();
+$subcategories = $pdo->query('SELECT s.sub_category_id AS id, s.name, s.category_id, c.name AS category_name FROM sub_categories s JOIN categories c ON s.category_id = c.category_id ORDER BY c.name, s.name')->fetchAll();
 
 require_once __DIR__ . '/../includes/header.php';
 require_once __DIR__ . '/../includes/navbar.php';

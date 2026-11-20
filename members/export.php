@@ -11,7 +11,7 @@ $output = fopen('php://output', 'w');
 // Header row
 fputcsv($output, ['ID', 'Member Number', 'Full Name', 'Email', 'Phone', 'Status', 'Date Joined']);
 
-$stmt = $pdo->query('SELECT id, member_number, full_name, email, phone, status, date_joined FROM members ORDER BY member_number ASC');
+$stmt = $pdo->query('SELECT member_id AS id, member_no AS member_number, full_name, email, phone, status, date_joined FROM members ORDER BY member_no ASC');
 while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
     fputcsv($output, [
         $row['id'],

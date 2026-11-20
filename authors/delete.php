@@ -11,7 +11,7 @@ if ($id <= 0) {
 }
 
 // Verify author exists
-$stmt = $pdo->prepare("SELECT id, name FROM authors WHERE id = ? LIMIT 1");
+$stmt = $pdo->prepare("SELECT author_id AS id, author_id, name FROM authors WHERE author_id = ? LIMIT 1");
 $stmt->execute([$id]);
 $author = $stmt->fetch(PDO::FETCH_ASSOC);
 if (!$author) {
@@ -20,7 +20,7 @@ if (!$author) {
 }
 
 // Check if author has books
-$chk = $pdo->prepare("SELECT COUNT(*) FROM books WHERE author_id = ?");
+$chk = $pdo->prepare("SELECT COUNT(*) FROM book_authors WHERE author_id = ?");
 $chk->execute([$id]);
 $bookCount = (int)$chk->fetchColumn();
 
@@ -30,7 +30,7 @@ if ($bookCount > 0) {
 }
 
 // Safe to delete
-$del = $pdo->prepare("DELETE FROM authors WHERE id = ?");
+$del = $pdo->prepare("DELETE FROM authors WHERE author_id = ?");
 $del->execute([$id]);
 setFlash('success', 'Author "' . $author['name'] . '" deleted successfully.');
 redirect(BASE_URL . '/authors/index.php');

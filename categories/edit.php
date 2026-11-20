@@ -13,7 +13,7 @@ if ($id <= 0) {
     redirect(BASE_URL . '/categories/index.php');
 }
 
-$stmt = $pdo->prepare('SELECT id, name, description FROM categories WHERE id = ?');
+$stmt = $pdo->prepare('SELECT category_id AS id, category_id, name, description FROM categories WHERE category_id = ?');
 $stmt->execute([$id]);
 $category = $stmt->fetch();
 
@@ -33,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Category name is required.';
     } else {
         // Check uniqueness excluding current record
-        $stmt = $pdo->prepare('SELECT COUNT(*) FROM categories WHERE name = ? AND id != ?');
+        $stmt = $pdo->prepare('SELECT COUNT(*) FROM categories WHERE name = ? AND category_id != ?');
         $stmt->execute([$name, $id]);
         if ($stmt->fetchColumn() > 0) {
             $errors[] = 'Another category with this name already exists.';
@@ -41,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (empty($errors)) {
-        $stmt = $pdo->prepare('UPDATE categories SET name = ?, description = ? WHERE id = ?');
+        $stmt = $pdo->prepare('UPDATE categories SET name = ?, description = ? WHERE category_id = ?');
         $stmt->execute([$name, $description ?: null, $id]);
 
         setFlash('success', 'Category updated successfully.');

@@ -11,7 +11,7 @@ if ($id <= 0) {
 }
 
 // Fetch member
-$stmt = $pdo->prepare('SELECT id, full_name, member_number FROM members WHERE id = ?');
+$stmt = $pdo->prepare('SELECT member_id AS id, member_id, full_name, member_no AS member_number FROM members WHERE member_id = ?');
 $stmt->execute([$id]);
 $member = $stmt->fetch();
 
@@ -20,7 +20,7 @@ if (!$member) {
     redirect(BASE_URL . '/members/index.php');
 }
 
-// Check business rule: A member with unreturned books cannot be deleted
+// Check business rule: Check active loans
 $activeLoanStmt = $pdo->prepare('SELECT COUNT(*) FROM loans WHERE member_id = ? AND date_returned IS NULL');
 $activeLoanStmt->execute([$id]);
 $activeLoans = $activeLoanStmt->fetchColumn();
@@ -30,23 +30,23 @@ if ($activeLoans > 0) {
     redirect(BASE_URL . '/members/index.php');
 }
 
+// Check if any loans exist at all (foreign key constraint)
+$loanStmt = $pdo->prepare('SELECT COUNT(*) FROM loans WHERE member_id = ?');
+$loanStmt->execute([$id]);
+$totalLoans = $loanStmt->fetchColumn();
+
+if ($totalLoans > 0) {
+    setFlash('danger', 'Cannot delete "' . e($member['full_name']) . '" (' . e($member['member_number']) . '): member has ' . $totalLoans . ' associated loan record(s). Cannot delete a member with active or historical loans.');
+    redirect(BASE_URL . '/members/index.php');
+}
+
 try {
-    $pdo->beginTransaction();
-
-    // Detach returned loan records to prevent foreign key constraint failure
-    $detachStmt = $pdo->prepare('UPDATE loans SET member_id = NULL WHERE member_id = ? AND date_returned IS NOT NULL');
-    $detachStmt->execute([$id]);
-
     // Delete member
-    $delStmt = $pdo->prepare('DELETE FROM members WHERE id = ?');
+    $delStmt = $pdo->prepare('DELETE FROM members WHERE member_id = ?');
     $delStmt->execute([$id]);
 
-    $pdo->commit();
     setFlash('success', 'Member "' . e($member['full_name']) . '" was successfully deleted.');
 } catch (PDOException $e) {
-    if ($pdo->inTransaction()) {
-        $pdo->rollBack();
-    }
     setFlash('danger', 'Could not delete member due to a database constraint. Error: ' . e($e->getMessage()));
 }
 

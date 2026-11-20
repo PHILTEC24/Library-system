@@ -15,7 +15,15 @@ if ($id <= 0) {
     exit;
 }
 
-$bookStmt = $pdo->prepare('SELECT * FROM books WHERE id = ?');
+$bookStmt = $pdo->prepare('
+    SELECT b.book_id AS id, b.book_id, b.isbn, b.title, b.sub_category_id, b.publisher, b.year_published, b.total_copies, b.available_copies,
+           sc.category_id,
+           ba.author_id
+    FROM books b
+    LEFT JOIN sub_categories sc ON b.sub_category_id = sc.sub_category_id
+    LEFT JOIN book_authors ba ON b.book_id = ba.book_id AND ba.author_role = "primary"
+    WHERE b.book_id = ?
+');
 $bookStmt->execute([$id]);
 $book = $bookStmt->fetch();
 
@@ -24,10 +32,11 @@ if (!$book) {
     header('Location: ' . BASE_URL . '/books/index.php');
     exit;
 }
+$book['subcategory_id'] = $book['sub_category_id'];
 
-$authors       = $pdo->query('SELECT id, name FROM authors ORDER BY name')->fetchAll();
-$categories    = $pdo->query('SELECT id, name FROM categories ORDER BY name')->fetchAll();
-$subcategories = $pdo->query('SELECT s.id, s.name, s.category_id, c.name AS category_name FROM subcategories s JOIN categories c ON s.category_id = c.id ORDER BY c.name, s.name')->fetchAll();
+$authors       = $pdo->query('SELECT author_id AS id, name FROM authors ORDER BY name')->fetchAll();
+$categories    = $pdo->query('SELECT category_id AS id, name FROM categories ORDER BY name')->fetchAll();
+$subcategories = $pdo->query('SELECT s.sub_category_id AS id, s.name, s.category_id, c.name AS category_name FROM sub_categories s JOIN categories c ON s.category_id = c.category_id ORDER BY c.name, s.name')->fetchAll();
 
 // Pre-fill with existing data (overridden by POST on validation failure)
 $old = $book;
@@ -49,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors['isbn'] = 'ISBN is required.';
     } else {
         // Check uniqueness excluding this book's id
-        $chk = $pdo->prepare('SELECT id FROM books WHERE isbn = ? AND id != ?');
+        $chk = $pdo->prepare('SELECT book_id FROM books WHERE isbn = ? AND book_id != ?');
         $chk->execute([$isbn, $id]);
         if ($chk->fetch()) {
             $errors['isbn'] = 'This ISBN is already used by another book.';
@@ -68,6 +77,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors['category_id'] = 'Please select a category.';
     }
 
+    if ($subcategory_id <= 0 && $category_id > 0) {
+        $firstSub = $pdo->prepare('SELECT sub_category_id FROM sub_categories WHERE category_id = ? LIMIT 1');
+        $firstSub->execute([$category_id]);
+        $subcategory_id = intval($firstSub->fetchColumn() ?: 0);
+    }
+
+    if ($subcategory_id <= 0) {
+        $errors['subcategory_id'] = 'Please select a valid subcategory.';
+    }
+
     if ($year_published !== '') {
         $yr = intval($year_published);
         if ($yr < 1000 || $yr > intval(date('Y'))) {
@@ -80,30 +99,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (empty($errors)) {
-        // Adjust available_copies by the delta in total_copies
-        $copyDelta = $total_copies - intval($book['total_copies']);
-        $newAvailable = max(0, intval($book['available_copies']) + $copyDelta);
+        try {
+            // Adjust available_copies by the delta in total_copies
+            $copyDelta = $total_copies - intval($book['total_copies']);
+            $newAvailable = max(0, intval($book['available_copies']) + $copyDelta);
 
-        $stmt = $pdo->prepare(
-            "UPDATE books SET isbn=?, title=?, author_id=?, category_id=?, subcategory_id=?, publisher=?,
-             year_published=?, total_copies=?, available_copies=?
-             WHERE id=?"
-        );
-        $stmt->execute([
-            $isbn,
-            $title,
-            $author_id ?: null,
-            $category_id ?: null,
-            $subcategory_id ?: null,
-            $publisher !== '' ? $publisher : null,
-            $year_published !== '' ? intval($year_published) : null,
-            $total_copies,
-            $newAvailable,
-            $id,
-        ]);
-        setFlash('success', 'Book "' . htmlspecialchars($title) . '" updated successfully.');
-        header('Location: ' . BASE_URL . '/books/index.php');
-        exit;
+            $pdo->beginTransaction();
+            $stmt = $pdo->prepare(
+                "UPDATE books SET isbn=?, title=?, sub_category_id=?, publisher=?,
+                 year_published=?, total_copies=?, available_copies=?
+                 WHERE book_id=?"
+            );
+            $stmt->execute([
+                $isbn,
+                $title,
+                $subcategory_id,
+                $publisher !== '' ? $publisher : null,
+                $year_published !== '' ? intval($year_published) : null,
+                $total_copies,
+                $newAvailable,
+                $id,
+            ]);
+
+            // Sync primary author
+            $pdo->prepare("DELETE FROM book_authors WHERE book_id = ? AND author_role = 'primary'")->execute([$id]);
+            if ($author_id > 0) {
+                $pdo->prepare("INSERT INTO book_authors (book_id, author_id, author_role) VALUES (?, ?, 'primary')")->execute([$id, $author_id]);
+            }
+
+            $pdo->commit();
+            setFlash('success', 'Book "' . htmlspecialchars($title) . '" updated successfully.');
+            header('Location: ' . BASE_URL . '/books/index.php');
+            exit;
+        } catch (Exception $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            $errors['general'] = 'Failed to update book: ' . $e->getMessage();
+        }
     }
 }
 
