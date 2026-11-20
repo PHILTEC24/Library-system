@@ -6,9 +6,9 @@ require_once __DIR__ . '/../includes/functions.php';
 
 $search = trim($_GET['search'] ?? '');
 
-$sql = "SELECT a.id, a.name, a.country, COUNT(b.id) AS book_count
+$sql = "SELECT a.author_id AS id, a.author_id, a.name, a.country, COUNT(ba.book_id) AS book_count
         FROM authors a
-        LEFT JOIN books b ON b.author_id = a.id";
+        LEFT JOIN book_authors ba ON ba.author_id = a.author_id";
 
 $params = [];
 if ($search !== '') {
@@ -16,7 +16,7 @@ if ($search !== '') {
     $params[] = '%' . $search . '%';
 }
 
-$sql .= " GROUP BY a.id ORDER BY a.name ASC";
+$sql .= " GROUP BY a.author_id, a.name, a.country ORDER BY a.name ASC";
 
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);

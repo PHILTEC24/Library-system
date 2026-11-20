@@ -31,7 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (!filter_var($old['email'], FILTER_VALIDATE_EMAIL)) {
         $errors['email'] = 'Invalid email format.';
     } else {
-        $stmt = $pdo->prepare('SELECT id FROM members WHERE email = ? LIMIT 1');
+        $stmt = $pdo->prepare('SELECT member_id FROM members WHERE email = ? LIMIT 1');
         $stmt->execute([$old['email']]);
         if ($stmt->fetch()) {
             $errors['email'] = 'Email is already registered.';
@@ -45,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($old['member_number'] === '') {
         $errors['member_number'] = 'Member number is required.';
     } else {
-        $stmt = $pdo->prepare('SELECT id FROM members WHERE member_number = ? LIMIT 1');
+        $stmt = $pdo->prepare('SELECT member_id FROM members WHERE member_no = ? LIMIT 1');
         $stmt->execute([$old['member_number']]);
         if ($stmt->fetch()) {
             $errors['member_number'] = 'Member number already in use. Please choose another.';
@@ -58,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (empty($errors)) {
         $stmt = $pdo->prepare(
-            'INSERT INTO members (member_number, full_name, email, phone, status, date_joined)
+            'INSERT INTO members (member_no, full_name, email, phone, status, date_joined)
              VALUES (?, ?, ?, ?, ?, ?)'
         );
         $stmt->execute([

@@ -7,30 +7,40 @@ require_once __DIR__ . '/../includes/functions.php';
 $pageTitle = 'Books';
 $search = trim($_GET['search'] ?? '');
 $catFilter = intval($_GET['category'] ?? 0);
+$subFilter = intval($_GET['subcategory'] ?? 0);
 
 $params = [];
-$sql = "SELECT b.id, b.isbn, b.title, b.publisher, b.year_published,
+$sql = "SELECT b.book_id AS id, b.isbn, b.title, b.publisher, b.year_published,
                b.total_copies, b.available_copies,
-               a.name AS author_name, c.name AS category_name
+               GROUP_CONCAT(DISTINCT a.name ORDER BY (ba.author_role='primary') DESC, a.name SEPARATOR ', ') AS author_name,
+               c.name AS category_name,
+               s.name AS subcategory_name
         FROM books b
-        LEFT JOIN authors a ON b.author_id = a.id
-        LEFT JOIN categories c ON b.category_id = c.id
+        LEFT JOIN book_authors ba ON b.book_id = ba.book_id
+        LEFT JOIN authors a ON ba.author_id = a.author_id
+        LEFT JOIN sub_categories s ON b.sub_category_id = s.sub_category_id
+        LEFT JOIN categories c ON s.category_id = c.category_id
         WHERE 1=1";
 
 if ($search !== '') {
-    $sql .= " AND (b.title LIKE ? OR b.isbn LIKE ? OR a.name LIKE ?)";
-    $params[] = "%$search%"; $params[] = "%$search%"; $params[] = "%$search%";
+    $sql .= " AND (b.title LIKE ? OR b.isbn LIKE ? OR a.name LIKE ? OR c.name LIKE ? OR s.name LIKE ?)";
+    $params[] = "%$search%"; $params[] = "%$search%"; $params[] = "%$search%"; $params[] = "%$search%"; $params[] = "%$search%";
 }
 if ($catFilter > 0) {
-    $sql .= " AND b.category_id = ?";
+    $sql .= " AND s.category_id = ?";
     $params[] = $catFilter;
 }
-$sql .= " ORDER BY b.title ASC";
+if ($subFilter > 0) {
+    $sql .= " AND b.sub_category_id = ?";
+    $params[] = $subFilter;
+}
+$sql .= " GROUP BY b.book_id, b.isbn, b.title, b.publisher, b.year_published, b.total_copies, b.available_copies, c.name, s.name ORDER BY b.title ASC";
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $books = $stmt->fetchAll();
 
-$categories = $pdo->query('SELECT id, name FROM categories ORDER BY name')->fetchAll();
+$categories = $pdo->query('SELECT category_id AS id, name FROM categories ORDER BY name')->fetchAll();
+$subcategories = $pdo->query('SELECT s.sub_category_id AS id, s.name, s.category_id, c.name AS category_name FROM sub_categories s JOIN categories c ON s.category_id = c.category_id ORDER BY c.name, s.name')->fetchAll();
 
 require_once __DIR__ . '/../includes/header.php';
 require_once __DIR__ . '/../includes/navbar.php';
@@ -54,22 +64,34 @@ require_once __DIR__ . '/../includes/navbar.php';
   <div class="card shadow-sm mb-3">
     <div class="card-body">
       <form method="GET" class="row g-2 align-items-end">
-        <div class="col-md-5">
-          <label class="form-label small">Search</label>
-          <input type="text" name="search" class="form-control" placeholder="Title, ISBN, author..." value="<?= e($search) ?>">
-        </div>
         <div class="col-md-4">
+          <label class="form-label small">Search</label>
+          <input type="text" name="search" class="form-control" placeholder="Title, ISBN, author, category, subcategory..." value="<?= e($search) ?>">
+        </div>
+        <div class="col-md-3">
           <label class="form-label small">Category</label>
-          <select name="category" class="form-select">
+          <select name="category" class="form-select" onchange="this.form.submit()">
             <option value="">All Categories</option>
             <?php foreach ($categories as $cat): ?>
               <option value="<?= $cat['id'] ?>" <?= $catFilter == $cat['id'] ? 'selected' : '' ?>><?= e($cat['name']) ?></option>
             <?php endforeach; ?>
           </select>
         </div>
-        <div class="col-md-3 d-flex gap-2">
-          <button type="submit" class="btn btn-primary flex-fill"><i class="bi bi-search"></i> Search</button>
-          <a href="<?= BASE_URL ?>/books/index.php" class="btn btn-secondary"><i class="bi bi-x"></i></a>
+        <div class="col-md-3">
+          <label class="form-label small">Subcategory</label>
+          <select name="subcategory" class="form-select">
+            <option value="">All Subcategories</option>
+            <?php foreach ($subcategories as $sub): ?>
+              <?php if ($catFilter > 0 && $sub['category_id'] != $catFilter) continue; ?>
+              <option value="<?= $sub['id'] ?>" <?= $subFilter == $sub['id'] ? 'selected' : '' ?>>
+                <?= $catFilter > 0 ? e($sub['name']) : e($sub['category_name'] . ' → ' . $sub['name']) ?>
+              </option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+        <div class="col-md-2 d-flex gap-2">
+          <button type="submit" class="btn btn-primary flex-fill"><i class="bi bi-search"></i> Filter</button>
+          <a href="<?= BASE_URL ?>/books/index.php" class="btn btn-secondary" title="Reset"><i class="bi bi-x-lg"></i></a>
         </div>
       </form>
     </div>
@@ -80,7 +102,7 @@ require_once __DIR__ . '/../includes/navbar.php';
       <div class="table-responsive">
         <table class="table table-hover mb-0">
           <thead class="table-dark"><tr>
-            <th>ISBN</th><th>Title</th><th>Author</th><th>Category</th>
+            <th>ISBN</th><th>Title</th><th>Author</th><th>Category / Subcategory</th>
             <th>Year</th><th>Copies</th><th>Available</th><th>Actions</th>
           </tr></thead>
           <tbody>
@@ -89,7 +111,14 @@ require_once __DIR__ . '/../includes/navbar.php';
               <td><small><?= e($book['isbn']) ?></small></td>
               <td><strong><?= e($book['title']) ?></strong></td>
               <td><?= e($book['author_name'] ?? '—') ?></td>
-              <td><?= e($book['category_name'] ?? '—') ?></td>
+              <td>
+                <div><?= e($book['category_name'] ?? '—') ?></div>
+                <?php if (!empty($book['subcategory_name'])): ?>
+                  <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle small">
+                    <i class="bi bi-tag-fill me-1"></i><?= e($book['subcategory_name']) ?>
+                  </span>
+                <?php endif; ?>
+              </td>
               <td><?= e($book['year_published'] ?? '—') ?></td>
               <td><?= e($book['total_copies']) ?></td>
               <td>

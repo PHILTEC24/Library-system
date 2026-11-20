@@ -16,11 +16,11 @@ if (!in_array($filter, $validFilters)) {
 
 $params = [];
 
-$sql = "SELECT l.id,
+$sql = "SELECT l.loan_id AS id,
                b.title AS book_title,
-               b.id AS book_id,
+               b.book_id,
                m.full_name AS member_name,
-               m.member_number,
+               m.member_no AS member_number,
                l.date_issued,
                l.due_date,
                l.date_returned,
@@ -30,8 +30,8 @@ $sql = "SELECT l.id,
                    ELSE 'active'
                END AS computed_status
         FROM loans l
-        JOIN books b ON l.book_id = b.id
-        JOIN members m ON l.member_id = m.id
+        JOIN books b ON l.book_id = b.book_id
+        JOIN members m ON l.member_id = m.member_id
         WHERE 1=1";
 
 if ($search !== '') {
@@ -48,7 +48,7 @@ if ($filter === 'returned') {
     $sql .= " AND l.date_returned IS NULL AND l.due_date < CURDATE()";
 }
 
-$sql .= " ORDER BY l.id DESC";
+$sql .= " ORDER BY l.loan_id DESC";
 
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);

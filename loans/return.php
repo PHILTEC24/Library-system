@@ -12,13 +12,13 @@ if ($id <= 0) {
 
 // Fetch the loan with book and member info
 $stmt = $pdo->prepare(
-    'SELECT l.id, l.book_id, l.member_id, l.date_issued, l.due_date, l.date_returned,
+    'SELECT l.loan_id AS id, l.loan_id, l.book_id, l.member_id, l.date_issued, l.due_date, l.date_returned,
             b.title AS book_title, b.available_copies, b.total_copies,
-            m.full_name AS member_name, m.member_number
+            m.full_name AS member_name, m.member_no AS member_number
      FROM loans l
-     JOIN books b ON l.book_id = b.id
-     JOIN members m ON l.member_id = m.id
-     WHERE l.id = ?'
+     JOIN books b ON l.book_id = b.book_id
+     JOIN members m ON l.member_id = m.member_id
+     WHERE l.loan_id = ?'
 );
 $stmt->execute([$id]);
 $loan = $stmt->fetch();
@@ -54,13 +54,13 @@ try {
 
     // 1. Mark loan as returned
     $updateLoan = $pdo->prepare(
-        'UPDATE loans SET date_returned = ?, status = "returned" WHERE id = ?'
+        'UPDATE loans SET date_returned = ? WHERE loan_id = ?'
     );
     $updateLoan->execute([$returnDate, $id]);
 
     // 2. Increase available copies by 1 (capped at total_copies)
     $updateBook = $pdo->prepare(
-        'UPDATE books SET available_copies = LEAST(total_copies, available_copies + 1) WHERE id = ?'
+        'UPDATE books SET available_copies = LEAST(total_copies, available_copies + 1) WHERE book_id = ?'
     );
     $updateBook->execute([$loan['book_id']]);
 

@@ -7,7 +7,7 @@ require_once __DIR__ . '/../includes/functions.php';
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
 // Load existing member
-$stmt = $pdo->prepare('SELECT * FROM members WHERE id = ? LIMIT 1');
+$stmt = $pdo->prepare('SELECT member_id AS id, member_id, member_no, member_no AS member_number, full_name, email, phone, status, date_joined FROM members WHERE member_id = ? LIMIT 1');
 $stmt->execute([$id]);
 $member = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -42,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors['email'] = 'Invalid email format.';
     } else {
         // Unique excluding current
-        $stmt = $pdo->prepare('SELECT id FROM members WHERE email = ? AND id != ? LIMIT 1');
+        $stmt = $pdo->prepare('SELECT member_id FROM members WHERE email = ? AND member_id != ? LIMIT 1');
         $stmt->execute([$old['email'], $id]);
         if ($stmt->fetch()) {
             $errors['email'] = 'Email is already registered to another member.';
@@ -57,7 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors['member_number'] = 'Member number is required.';
     } else {
         // Unique excluding current
-        $stmt = $pdo->prepare('SELECT id FROM members WHERE member_number = ? AND id != ? LIMIT 1');
+        $stmt = $pdo->prepare('SELECT member_id FROM members WHERE member_no = ? AND member_id != ? LIMIT 1');
         $stmt->execute([$old['member_number'], $id]);
         if ($stmt->fetch()) {
             $errors['member_number'] = 'Member number already in use by another member.';
@@ -71,8 +71,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($errors)) {
         $stmt = $pdo->prepare(
             'UPDATE members
-             SET full_name = ?, email = ?, phone = ?, status = ?, member_number = ?, date_joined = ?
-             WHERE id = ?'
+             SET full_name = ?, email = ?, phone = ?, status = ?, member_no = ?, date_joined = ?
+             WHERE member_id = ?'
         );
         $stmt->execute([
             $old['full_name'],

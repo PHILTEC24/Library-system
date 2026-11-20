@@ -11,7 +11,7 @@ if ($id <= 0) {
 }
 
 // Load author
-$stmt = $pdo->prepare("SELECT * FROM authors WHERE id = ? LIMIT 1");
+$stmt = $pdo->prepare("SELECT author_id AS id, author_id, name, country FROM authors WHERE author_id = ? LIMIT 1");
 $stmt->execute([$id]);
 $author = $stmt->fetch(PDO::FETCH_ASSOC);
 if (!$author) {
@@ -31,7 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Author name is required.';
     } else {
         // Check duplicate (exclude current)
-        $dup = $pdo->prepare("SELECT id FROM authors WHERE name = ? AND id != ? LIMIT 1");
+        $dup = $pdo->prepare("SELECT author_id FROM authors WHERE name = ? AND author_id != ? LIMIT 1");
         $dup->execute([$name, $id]);
         if ($dup->fetch()) {
             $errors[] = 'Another author with this name already exists.';
@@ -39,7 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (empty($errors)) {
-        $stmt = $pdo->prepare("UPDATE authors SET name = ?, country = ? WHERE id = ?");
+        $stmt = $pdo->prepare("UPDATE authors SET name = ?, country = ? WHERE author_id = ?");
         $stmt->execute([$name, $country !== '' ? $country : null, $id]);
         setFlash('success', 'Author updated successfully.');
         redirect(BASE_URL . '/authors/index.php');

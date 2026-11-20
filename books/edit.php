@@ -15,7 +15,15 @@ if ($id <= 0) {
     exit;
 }
 
-$bookStmt = $pdo->prepare('SELECT * FROM books WHERE id = ?');
+$bookStmt = $pdo->prepare('
+    SELECT b.book_id AS id, b.book_id, b.isbn, b.title, b.sub_category_id, b.publisher, b.year_published, b.total_copies, b.available_copies,
+           sc.category_id,
+           ba.author_id
+    FROM books b
+    LEFT JOIN sub_categories sc ON b.sub_category_id = sc.sub_category_id
+    LEFT JOIN book_authors ba ON b.book_id = ba.book_id AND ba.author_role = "primary"
+    WHERE b.book_id = ?
+');
 $bookStmt->execute([$id]);
 $book = $bookStmt->fetch();
 
@@ -24,9 +32,11 @@ if (!$book) {
     header('Location: ' . BASE_URL . '/books/index.php');
     exit;
 }
+$book['subcategory_id'] = $book['sub_category_id'];
 
-$authors    = $pdo->query('SELECT id, name FROM authors ORDER BY name')->fetchAll();
-$categories = $pdo->query('SELECT id, name FROM categories ORDER BY name')->fetchAll();
+$authors       = $pdo->query('SELECT author_id AS id, name FROM authors ORDER BY name')->fetchAll();
+$categories    = $pdo->query('SELECT category_id AS id, name FROM categories ORDER BY name')->fetchAll();
+$subcategories = $pdo->query('SELECT s.sub_category_id AS id, s.name, s.category_id, c.name AS category_name FROM sub_categories s JOIN categories c ON s.category_id = c.category_id ORDER BY c.name, s.name')->fetchAll();
 
 // Pre-fill with existing data (overridden by POST on validation failure)
 $old = $book;
@@ -34,20 +44,21 @@ $old = $book;
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $old = $_POST;
 
-    $isbn          = trim($_POST['isbn'] ?? '');
-    $title         = trim($_POST['title'] ?? '');
-    $author_id     = intval($_POST['author_id'] ?? 0);
-    $category_id   = intval($_POST['category_id'] ?? 0);
-    $publisher     = trim($_POST['publisher'] ?? '');
+    $isbn           = trim($_POST['isbn'] ?? '');
+    $title          = trim($_POST['title'] ?? '');
+    $author_id      = intval($_POST['author_id'] ?? 0);
+    $category_id    = intval($_POST['category_id'] ?? 0);
+    $subcategory_id = intval($_POST['subcategory_id'] ?? 0);
+    $publisher      = trim($_POST['publisher'] ?? '');
     $year_published = trim($_POST['year_published'] ?? '');
-    $total_copies  = intval($_POST['total_copies'] ?? 1);
+    $total_copies   = intval($_POST['total_copies'] ?? 1);
 
     // Validation
     if ($isbn === '') {
         $errors['isbn'] = 'ISBN is required.';
     } else {
         // Check uniqueness excluding this book's id
-        $chk = $pdo->prepare('SELECT id FROM books WHERE isbn = ? AND id != ?');
+        $chk = $pdo->prepare('SELECT book_id FROM books WHERE isbn = ? AND book_id != ?');
         $chk->execute([$isbn, $id]);
         if ($chk->fetch()) {
             $errors['isbn'] = 'This ISBN is already used by another book.';
@@ -66,6 +77,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors['category_id'] = 'Please select a category.';
     }
 
+    if ($subcategory_id <= 0 && $category_id > 0) {
+        $firstSub = $pdo->prepare('SELECT sub_category_id FROM sub_categories WHERE category_id = ? LIMIT 1');
+        $firstSub->execute([$category_id]);
+        $subcategory_id = intval($firstSub->fetchColumn() ?: 0);
+    }
+
+    if ($subcategory_id <= 0) {
+        $errors['subcategory_id'] = 'Please select a valid subcategory.';
+    }
+
     if ($year_published !== '') {
         $yr = intval($year_published);
         if ($yr < 1000 || $yr > intval(date('Y'))) {
@@ -78,29 +99,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (empty($errors)) {
-        // Adjust available_copies by the delta in total_copies
-        $copyDelta = $total_copies - intval($book['total_copies']);
-        $newAvailable = max(0, intval($book['available_copies']) + $copyDelta);
+        try {
+            // Adjust available_copies by the delta in total_copies
+            $copyDelta = $total_copies - intval($book['total_copies']);
+            $newAvailable = max(0, intval($book['available_copies']) + $copyDelta);
 
-        $stmt = $pdo->prepare(
-            "UPDATE books SET isbn=?, title=?, author_id=?, category_id=?, publisher=?,
-             year_published=?, total_copies=?, available_copies=?
-             WHERE id=?"
-        );
-        $stmt->execute([
-            $isbn,
-            $title,
-            $author_id ?: null,
-            $category_id ?: null,
-            $publisher !== '' ? $publisher : null,
-            $year_published !== '' ? intval($year_published) : null,
-            $total_copies,
-            $newAvailable,
-            $id,
-        ]);
-        setFlash('success', 'Book "' . htmlspecialchars($title) . '" updated successfully.');
-        header('Location: ' . BASE_URL . '/books/index.php');
-        exit;
+            $pdo->beginTransaction();
+            $stmt = $pdo->prepare(
+                "UPDATE books SET isbn=?, title=?, sub_category_id=?, publisher=?,
+                 year_published=?, total_copies=?, available_copies=?
+                 WHERE book_id=?"
+            );
+            $stmt->execute([
+                $isbn,
+                $title,
+                $subcategory_id,
+                $publisher !== '' ? $publisher : null,
+                $year_published !== '' ? intval($year_published) : null,
+                $total_copies,
+                $newAvailable,
+                $id,
+            ]);
+
+            // Sync primary author
+            $pdo->prepare("DELETE FROM book_authors WHERE book_id = ? AND author_role = 'primary'")->execute([$id]);
+            if ($author_id > 0) {
+                $pdo->prepare("INSERT INTO book_authors (book_id, author_id, author_role) VALUES (?, ?, 'primary')")->execute([$id, $author_id]);
+            }
+
+            $pdo->commit();
+            setFlash('success', 'Book "' . htmlspecialchars($title) . '" updated successfully.');
+            header('Location: ' . BASE_URL . '/books/index.php');
+            exit;
+        } catch (Exception $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            $errors['general'] = 'Failed to update book: ' . $e->getMessage();
+        }
     }
 }
 
@@ -163,7 +199,7 @@ require_once __DIR__ . '/../includes/navbar.php';
         <!-- Category -->
         <div class="mb-3">
           <label for="category_id" class="form-label">Category <span class="text-danger">*</span></label>
-          <select id="category_id" name="category_id" class="form-select <?= isset($errors['category_id']) ? 'is-invalid' : '' ?>">
+          <select id="category_id" name="category_id" class="form-select <?= isset($errors['category_id']) ? 'is-invalid' : '' ?>" onchange="filterSubcategories()">
             <option value="">— Select Category —</option>
             <?php foreach ($categories as $cat): ?>
               <option value="<?= $cat['id'] ?>" <?= ($old['category_id'] == $cat['id']) ? 'selected' : '' ?>>
@@ -174,6 +210,20 @@ require_once __DIR__ . '/../includes/navbar.php';
           <?php if (isset($errors['category_id'])): ?>
             <div class="invalid-feedback"><?= e($errors['category_id']) ?></div>
           <?php endif; ?>
+        </div>
+
+        <!-- Subcategory -->
+        <div class="mb-3">
+          <label for="subcategory_id" class="form-label">Subcategory <small class="text-muted">(Optional)</small></label>
+          <select id="subcategory_id" name="subcategory_id" class="form-select">
+            <option value="">— Select Subcategory —</option>
+            <?php foreach ($subcategories as $sub): ?>
+              <option value="<?= $sub['id'] ?>" data-cat="<?= $sub['category_id'] ?>" <?= (isset($old['subcategory_id']) && $old['subcategory_id'] == $sub['id']) ? 'selected' : '' ?>>
+                <?= e($sub['category_name']) ?> &rarr; <?= e($sub['name']) ?>
+              </option>
+            <?php endforeach; ?>
+          </select>
+          <div class="form-text text-muted">e.g. Novels under Fiction, Software Engineering under Technology.</div>
         </div>
 
         <!-- Publisher -->
@@ -221,4 +271,23 @@ require_once __DIR__ . '/../includes/navbar.php';
   </div>
 </div>
 </main>
+<script>
+function filterSubcategories() {
+  const catId = document.getElementById('category_id').value;
+  const subSelect = document.getElementById('subcategory_id');
+  const options = subSelect.querySelectorAll('option');
+
+  options.forEach(opt => {
+    if (!opt.value) return; // keep default placeholder
+    const optCat = opt.getAttribute('data-cat');
+    if (!catId || optCat === catId) {
+      opt.style.display = '';
+    } else {
+      opt.style.display = 'none';
+      if (opt.selected) subSelect.value = '';
+    }
+  });
+}
+document.addEventListener('DOMContentLoaded', filterSubcategories);
+</script>
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

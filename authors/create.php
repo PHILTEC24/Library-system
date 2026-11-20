@@ -17,7 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Author name is required.';
     } else {
         // Check duplicate
-        $dup = $pdo->prepare("SELECT id FROM authors WHERE name = ? LIMIT 1");
+        $dup = $pdo->prepare("SELECT author_id FROM authors WHERE name = ? LIMIT 1");
         $dup->execute([$name]);
         if ($dup->fetch()) {
             $errors[] = 'An author with this name already exists.';

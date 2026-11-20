@@ -12,7 +12,7 @@ if ($id <= 0) {
 }
 
 // Fetch the book
-$bookStmt = $pdo->prepare('SELECT id, title FROM books WHERE id = ?');
+$bookStmt = $pdo->prepare('SELECT book_id AS id, book_id, title FROM books WHERE book_id = ?');
 $bookStmt->execute([$id]);
 $book = $bookStmt->fetch();
 
@@ -35,8 +35,17 @@ if ($activeCount > 0) {
     exit;
 }
 
+// Check for any historical loans to avoid foreign key restriction errors
+$historyCheck = $pdo->prepare('SELECT COUNT(*) FROM loans WHERE book_id = ?');
+$historyCheck->execute([$id]);
+if ($historyCheck->fetchColumn() > 0) {
+    setFlash('danger', 'Cannot delete "' . htmlspecialchars($book['title']) . '" — it has associated loan records in library history.');
+    header('Location: ' . BASE_URL . '/books/index.php');
+    exit;
+}
+
 // Safe to delete
-$del = $pdo->prepare('DELETE FROM books WHERE id = ?');
+$del = $pdo->prepare('DELETE FROM books WHERE book_id = ?');
 $del->execute([$id]);
 
 setFlash('success', 'Book "' . htmlspecialchars($book['title']) . '" deleted successfully.');

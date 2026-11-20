@@ -21,7 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (empty($errors)) {
         // 1. Validate Member
-        $mStmt = $pdo->prepare('SELECT id, member_number, full_name, status FROM members WHERE id = ?');
+        $mStmt = $pdo->prepare('SELECT member_id AS id, member_id, member_no AS member_number, full_name, status FROM members WHERE member_id = ?');
         $mStmt->execute([$member_id]);
         $member = $mStmt->fetch();
 
@@ -33,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         // 2. Validate Book
-        $bStmt = $pdo->prepare('SELECT id, isbn, title, available_copies FROM books WHERE id = ?');
+        $bStmt = $pdo->prepare('SELECT book_id AS id, book_id, isbn, title, available_copies FROM books WHERE book_id = ?');
         $bStmt->execute([$book_id]);
         $book = $bStmt->fetch();
 
@@ -44,12 +44,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $errors[] = 'Rule Violation: "' . e($book['title']) . '" has zero available copies in stock.';
         }
 
-        // 3. Business rule: A member cannot borrow the same book twice at the same time.
+        // 3. Business rule: Single Active Book Policy (1 Person = 1 Book)
+        // A member can only borrow one book and cannot borrow again until the previous book is returned (cleared loan).
         if (empty($errors)) {
-            $dupStmt = $pdo->prepare('SELECT COUNT(*) FROM loans WHERE member_id = ? AND book_id = ? AND date_returned IS NULL');
-            $dupStmt->execute([$member_id, $book_id]);
-            if ($dupStmt->fetchColumn() > 0) {
-                $errors[] = 'Rule Violation: Member "' . e($member['full_name']) . '" already has an active (unreturned) loan for "' . e($book['title']) . '".';
+            $activeStmt = $pdo->prepare(
+                'SELECT l.loan_id AS id, b.title 
+                 FROM loans l 
+                 JOIN books b ON l.book_id = b.book_id 
+                 WHERE l.member_id = ? AND l.date_returned IS NULL 
+                 LIMIT 1'
+            );
+            $activeStmt->execute([$member_id]);
+            $existingLoan = $activeStmt->fetch();
+            if ($existingLoan) {
+                $errors[] = 'Rule Violation: Member "' . e($member['full_name']) . '" already has an unreturned book ("' . e($existingLoan['title']) . '"). A member is only permitted to borrow 1 book at a time and cannot borrow another until the previous book is returned and cleared.';
             }
         }
 
@@ -62,7 +70,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $pdo->beginTransaction();
 
                 // Re-check available copies with row lock (FOR UPDATE)
-                $lockStmt = $pdo->prepare('SELECT available_copies FROM books WHERE id = ? FOR UPDATE');
+                $lockStmt = $pdo->prepare('SELECT available_copies FROM books WHERE book_id = ? FOR UPDATE');
                 $lockStmt->execute([$book_id]);
                 $currentAvail = (int)$lockStmt->fetchColumn();
 
@@ -71,13 +79,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 // Insert loan record
+                $issuedBy = $_SESSION['user_id'] ?? 1;
                 $loanStmt = $pdo->prepare(
-                    'INSERT INTO loans (member_id, book_id, date_issued, due_date, status) VALUES (?, ?, ?, ?, "active")'
+                    'INSERT INTO loans (member_id, book_id, issued_by, date_issued, due_date) VALUES (?, ?, ?, ?, ?)'
                 );
-                $loanStmt->execute([$member_id, $book_id, $dateIssued, $dueDate]);
+                $loanStmt->execute([$member_id, $book_id, $issuedBy, $dateIssued, $dueDate]);
 
                 // Reduce available copies by 1
-                $updStmt = $pdo->prepare('UPDATE books SET available_copies = available_copies - 1 WHERE id = ?');
+                $updStmt = $pdo->prepare('UPDATE books SET available_copies = available_copies - 1 WHERE book_id = ?');
                 $updStmt->execute([$book_id]);
 
                 $pdo->commit();
@@ -94,11 +103,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Fetch active members
-$members = $pdo->query('SELECT id, member_number, full_name FROM members WHERE status = "active" ORDER BY full_name ASC')->fetchAll();
+// Fetch active members with their active loan counts
+$members = $pdo->query('
+    SELECT m.member_id AS id, m.member_no AS member_number, m.full_name,
+           (SELECT COUNT(*) FROM loans l WHERE l.member_id = m.member_id AND l.date_returned IS NULL) AS active_loans
+    FROM members m 
+    WHERE m.status = "active" 
+    ORDER BY m.full_name ASC
+')->fetchAll();
 
 // Fetch books with available copies > 0
-$books = $pdo->query('SELECT id, isbn, title, available_copies, total_copies FROM books WHERE available_copies > 0 ORDER BY title ASC')->fetchAll();
+$books = $pdo->query('SELECT book_id AS id, isbn, title, available_copies, total_copies FROM books WHERE available_copies > 0 ORDER BY title ASC')->fetchAll();
 
 require_once __DIR__ . '/../includes/header.php';
 require_once __DIR__ . '/../includes/navbar.php';
@@ -137,14 +152,15 @@ require_once __DIR__ . '/../includes/navbar.php';
             Member <span class="text-danger">*</span>
           </label>
           <select name="member_id" id="member_id" class="form-select" required>
-            <option value="">-- Choose an Active Member --</option>
+            <option value="">-- Choose an Eligible Member --</option>
             <?php foreach ($members as $m): ?>
-              <option value="<?= $m['id'] ?>" <?= (isset($_POST['member_id']) && $_POST['member_id'] == $m['id']) ? 'selected' : '' ?>>
-                <?= e($m['member_number']) ?> - <?= e($m['full_name']) ?>
+              <?php $hasLoan = ($m['active_loans'] > 0); ?>
+              <option value="<?= $m['id'] ?>" <?= $hasLoan ? 'disabled class="text-muted bg-light"' : '' ?> <?= (isset($_POST['member_id']) && $_POST['member_id'] == $m['id']) ? 'selected' : '' ?>>
+                <?= e($m['member_number']) ?> - <?= e($m['full_name']) ?><?= $hasLoan ? ' (Already has an unreturned book — Locked)' : ' (Eligible)' ?>
               </option>
             <?php endforeach; ?>
           </select>
-          <div class="form-text text-muted">Only active members can borrow books. Suspended members are excluded.</div>
+          <div class="form-text text-muted">A member can only borrow 1 book at a time. Members with an existing unreturned loan must return it first.</div>
         </div>
 
         <!-- Book Selection -->
@@ -169,12 +185,14 @@ require_once __DIR__ . '/../includes/navbar.php';
             <h6 class="fw-bold text-secondary mb-2"><i class="bi bi-info-circle me-1"></i>Automatic Loan Rules</h6>
             <div class="row g-2 small text-muted">
               <div class="col-sm-6">
-                <strong>Issue Date:</strong> <?= date('Y-m-d') ?> (Today)
+                <strong>Borrow Limit:</strong> 1 book max per member (must return before next borrow)
               </div>
               <div class="col-sm-6">
-                <strong>Due Date:</strong> <?= date('Y-m-d', strtotime('+14 days')) ?> (Auto: +14 days)
+                <strong>Due Date:</strong> <?= date('Y-m-d', strtotime('+14 days')) ?> (Auto: 14 days)
               </div>
             </div>
+          </div>
+        </div>
           </div>
         </div>
 

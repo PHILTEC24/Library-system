@@ -15,7 +15,7 @@ $where  = [];
 
 if ($search !== '') {
     $like = '%' . $search . '%';
-    $where[] = '(m.full_name LIKE ? OR m.email LIKE ? OR m.member_number LIKE ?)';
+    $where[] = '(m.full_name LIKE ? OR m.email LIKE ? OR m.member_no LIKE ?)';
     $params[] = $like;
     $params[] = $like;
     $params[] = $like;
@@ -28,7 +28,7 @@ if ($status === 'active' || $status === 'suspended') {
     $types .= 's';
 }
 
-$sql = 'SELECT m.id, m.member_number, m.full_name, m.email, m.phone, m.status, m.date_joined
+$sql = 'SELECT m.member_id AS id, m.member_id, m.member_no, m.member_no AS member_number, m.full_name, m.email, m.phone, m.status, m.date_joined
         FROM members m';
 if ($where) {
     $sql .= ' WHERE ' . implode(' AND ', $where);
