@@ -43,7 +43,17 @@ document.addEventListener('DOMContentLoaded', function () {
       const toast = new bootstrap.Toast(toastEl, {
         autohide: !isError,
         delay: 5000
+        // Auto-close mobile offcanvas sidebar when clicking any navigation link
+  const mobileSidebar = document.getElementById('lmsMobileSidebar');
+  if (mobileSidebar && typeof bootstrap !== 'undefined' && bootstrap.Offcanvas) {
+    mobileSidebar.querySelectorAll('.lms-nav-link').forEach(function (link) {
+      link.addEventListener('click', function () {
+        const inst = bootstrap.Offcanvas.getInstance(mobileSidebar);
+        if (inst) inst.hide();
       });
+    });
+  }
+});
       toast.show();
     }
   }
@@ -101,7 +111,17 @@ document.addEventListener('DOMContentLoaded', function () {
       };
 
       confirmModalInstance.show();
+      // Auto-close mobile offcanvas sidebar when clicking any navigation link
+  const mobileSidebar = document.getElementById('lmsMobileSidebar');
+  if (mobileSidebar && typeof bootstrap !== 'undefined' && bootstrap.Offcanvas) {
+    mobileSidebar.querySelectorAll('.lms-nav-link').forEach(function (link) {
+      link.addEventListener('click', function () {
+        const inst = bootstrap.Offcanvas.getInstance(mobileSidebar);
+        if (inst) inst.hide();
+      });
     });
+  }
+});
 
     if (modalBtn) {
       modalBtn.addEventListener('click', function () {
@@ -111,7 +131,17 @@ document.addEventListener('DOMContentLoaded', function () {
           confirmModalInstance.hide();
           action();
         }
+        // Auto-close mobile offcanvas sidebar when clicking any navigation link
+  const mobileSidebar = document.getElementById('lmsMobileSidebar');
+  if (mobileSidebar && typeof bootstrap !== 'undefined' && bootstrap.Offcanvas) {
+    mobileSidebar.querySelectorAll('.lms-nav-link').forEach(function (link) {
+      link.addEventListener('click', function () {
+        const inst = bootstrap.Offcanvas.getInstance(mobileSidebar);
+        if (inst) inst.hide();
       });
+    });
+  }
+});
     }
   }
 
@@ -123,8 +153,28 @@ document.addEventListener('DOMContentLoaded', function () {
       if (select.form) {
         select.form.submit();
       }
+      // Auto-close mobile offcanvas sidebar when clicking any navigation link
+  const mobileSidebar = document.getElementById('lmsMobileSidebar');
+  if (mobileSidebar && typeof bootstrap !== 'undefined' && bootstrap.Offcanvas) {
+    mobileSidebar.querySelectorAll('.lms-nav-link').forEach(function (link) {
+      link.addEventListener('click', function () {
+        const inst = bootstrap.Offcanvas.getInstance(mobileSidebar);
+        if (inst) inst.hide();
+      });
     });
-  });
+  }
+});
+    // Auto-close mobile offcanvas sidebar when clicking any navigation link
+  const mobileSidebar = document.getElementById('lmsMobileSidebar');
+  if (mobileSidebar && typeof bootstrap !== 'undefined' && bootstrap.Offcanvas) {
+    mobileSidebar.querySelectorAll('.lms-nav-link').forEach(function (link) {
+      link.addEventListener('click', function () {
+        const inst = bootstrap.Offcanvas.getInstance(mobileSidebar);
+        if (inst) inst.hide();
+      });
+    });
+  }
+});
 
   // =========================================================================
   // 4. Close Mobile Sidebar on Link Click
@@ -135,8 +185,28 @@ document.addEventListener('DOMContentLoaded', function () {
     mobileOffcanvasEl.querySelectorAll('.lms-nav-link').forEach(function (link) {
       link.addEventListener('click', function () {
         offcanvasInstance.hide();
+        // Auto-close mobile offcanvas sidebar when clicking any navigation link
+  const mobileSidebar = document.getElementById('lmsMobileSidebar');
+  if (mobileSidebar && typeof bootstrap !== 'undefined' && bootstrap.Offcanvas) {
+    mobileSidebar.querySelectorAll('.lms-nav-link').forEach(function (link) {
+      link.addEventListener('click', function () {
+        const inst = bootstrap.Offcanvas.getInstance(mobileSidebar);
+        if (inst) inst.hide();
       });
     });
+  }
+});
+      // Auto-close mobile offcanvas sidebar when clicking any navigation link
+  const mobileSidebar = document.getElementById('lmsMobileSidebar');
+  if (mobileSidebar && typeof bootstrap !== 'undefined' && bootstrap.Offcanvas) {
+    mobileSidebar.querySelectorAll('.lms-nav-link').forEach(function (link) {
+      link.addEventListener('click', function () {
+        const inst = bootstrap.Offcanvas.getInstance(mobileSidebar);
+        if (inst) inst.hide();
+      });
+    });
+  }
+});
   }
 
   // =========================================================================
@@ -250,7 +320,17 @@ document.addEventListener('DOMContentLoaded', function () {
         icon.className = isPassword ? 'bi bi-eye-slash' : 'bi bi-eye';
       }
       togglePassBtn.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
+      // Auto-close mobile offcanvas sidebar when clicking any navigation link
+  const mobileSidebar = document.getElementById('lmsMobileSidebar');
+  if (mobileSidebar && typeof bootstrap !== 'undefined' && bootstrap.Offcanvas) {
+    mobileSidebar.querySelectorAll('.lms-nav-link').forEach(function (link) {
+      link.addEventListener('click', function () {
+        const inst = bootstrap.Offcanvas.getInstance(mobileSidebar);
+        if (inst) inst.hide();
+      });
     });
+  }
+});
   }
 
   // =========================================================================
@@ -266,7 +346,17 @@ document.addEventListener('DOMContentLoaded', function () {
         p.value = 'password';
         p.focus();
       }
+      // Auto-close mobile offcanvas sidebar when clicking any navigation link
+  const mobileSidebar = document.getElementById('lmsMobileSidebar');
+  if (mobileSidebar && typeof bootstrap !== 'undefined' && bootstrap.Offcanvas) {
+    mobileSidebar.querySelectorAll('.lms-nav-link').forEach(function (link) {
+      link.addEventListener('click', function () {
+        const inst = bootstrap.Offcanvas.getInstance(mobileSidebar);
+        if (inst) inst.hide();
+      });
     });
+  }
+});
   }
 
   // =========================================================================
@@ -298,10 +388,30 @@ document.addEventListener('DOMContentLoaded', function () {
     btn.addEventListener('click', function () {
       const current = root.getAttribute('data-theme') || 'light';
       applyTheme(current === 'dark' ? 'light' : 'dark');
+      // Auto-close mobile offcanvas sidebar when clicking any navigation link
+  const mobileSidebar = document.getElementById('lmsMobileSidebar');
+  if (mobileSidebar && typeof bootstrap !== 'undefined' && bootstrap.Offcanvas) {
+    mobileSidebar.querySelectorAll('.lms-nav-link').forEach(function (link) {
+      link.addEventListener('click', function () {
+        const inst = bootstrap.Offcanvas.getInstance(mobileSidebar);
+        if (inst) inst.hide();
+      });
     });
+  }
+});
     btn.setAttribute('title', 'Toggle dark / light mode');
     btn.setAttribute('aria-label', 'Toggle dark / light mode');
-  });
+    // Auto-close mobile offcanvas sidebar when clicking any navigation link
+  const mobileSidebar = document.getElementById('lmsMobileSidebar');
+  if (mobileSidebar && typeof bootstrap !== 'undefined' && bootstrap.Offcanvas) {
+    mobileSidebar.querySelectorAll('.lms-nav-link').forEach(function (link) {
+      link.addEventListener('click', function () {
+        const inst = bootstrap.Offcanvas.getInstance(mobileSidebar);
+        if (inst) inst.hide();
+      });
+    });
+  }
+});
 
   // Listen for OS-level theme changes
   if (window.matchMedia) {
@@ -309,6 +419,26 @@ document.addEventListener('DOMContentLoaded', function () {
       if (!localStorage.getItem(DARK_KEY)) {
         applyTheme(e.matches ? 'dark' : 'light');
       }
+      // Auto-close mobile offcanvas sidebar when clicking any navigation link
+  const mobileSidebar = document.getElementById('lmsMobileSidebar');
+  if (mobileSidebar && typeof bootstrap !== 'undefined' && bootstrap.Offcanvas) {
+    mobileSidebar.querySelectorAll('.lms-nav-link').forEach(function (link) {
+      link.addEventListener('click', function () {
+        const inst = bootstrap.Offcanvas.getInstance(mobileSidebar);
+        if (inst) inst.hide();
+      });
+    });
+  }
+});
+  }
+  // Auto-close mobile offcanvas sidebar when clicking any navigation link
+  const mobileSidebar = document.getElementById('lmsMobileSidebar');
+  if (mobileSidebar && typeof bootstrap !== 'undefined' && bootstrap.Offcanvas) {
+    mobileSidebar.querySelectorAll('.lms-nav-link').forEach(function (link) {
+      link.addEventListener('click', function () {
+        const inst = bootstrap.Offcanvas.getInstance(mobileSidebar);
+        if (inst) inst.hide();
+      });
     });
   }
 });

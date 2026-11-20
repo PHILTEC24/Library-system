@@ -165,12 +165,12 @@ require_once __DIR__ . '/../includes/navbar.php';
                     </div>
                 <?php else: ?>
                     <div class="table-responsive">
-                        <table class="lms-table align-middle">
+                        <table class="lms-table lms-table-stacked align-middle">
                             <tbody>
                             <?php foreach ($overdueList as $item): ?>
                                 <tr>
                                     <!-- Spine & Title -->
-                                    <td style="min-width: 220px;">
+                                    <td class="lms-td-primary" data-label="Book">
                                         <div class="d-flex align-items-center gap-3">
                                             <?= spine_tile($item['title'], $item['category_id'] ?? 0, 'sm') ?>
                                             <div class="min-w-0">
@@ -181,13 +181,13 @@ require_once __DIR__ . '/../includes/navbar.php';
                                     </td>
 
                                     <!-- Due date & Late info -->
-                                    <td class="text-muted small">
+                                    <td data-label="Due" class="text-muted small">
                                         <div>Due <?= format_date($item['due_date']) ?></div>
                                         <div class="text-danger fw-semibold"><?= (int)$item['days_overdue'] ?> days overdue</div>
                                     </td>
 
                                     <!-- Action Buttons -->
-                                    <td class="text-end">
+                                    <td data-label="Action" class="lms-td-actions text-end">
                                         <div class="d-inline-flex align-items-center gap-2">
                                             <?php if (!empty($item['phone'])): ?>
                                                 <a href="tel:<?= e($item['phone']) ?>" class="lms-btn-icon" title="Call member (<?= e($item['phone']) ?>)" aria-label="Call <?= e($item['full_name']) ?>">
@@ -224,7 +224,7 @@ require_once __DIR__ . '/../includes/navbar.php';
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="lms-table align-middle">
+                    <table class="lms-table lms-table-stacked align-middle">
                         <thead>
                             <tr>
                                 <th scope="col">Book</th>
@@ -240,7 +240,7 @@ require_once __DIR__ . '/../includes/navbar.php';
                         <?php else: ?>
                             <?php foreach ($recentLoans as $loan): ?>
                                 <tr>
-                                    <td>
+                                    <td class="lms-td-primary" data-label="Book">
                                         <div class="d-flex align-items-center gap-2">
                                             <?= spine_tile($loan['title'], $loan['category_id'] ?? 0, 'sm') ?>
                                             <span class="fw-medium text-truncate" style="max-width: 180px;" title="<?= e($loan['title']) ?>">
@@ -248,10 +248,10 @@ require_once __DIR__ . '/../includes/navbar.php';
                                             </span>
                                         </div>
                                     </td>
-                                    <td><?= e($loan['full_name']) ?></td>
-                                    <td class="lms-tabular text-muted"><?= format_date($loan['date_issued']) ?></td>
-                                    <td class="lms-tabular text-muted"><?= format_date($loan['due_date']) ?></td>
-                                    <td>
+                                    <td data-label="Member"><?= e($loan['full_name']) ?></td>
+                                    <td data-label="Issued" class="lms-tabular text-muted"><?= format_date($loan['date_issued']) ?></td>
+                                    <td data-label="Due" class="lms-tabular text-muted"><?= format_date($loan['due_date']) ?></td>
+                                    <td data-label="Status">
                                         <?php
                                         $s = loan_status($loan);
                                         if ($s === 'returned') echo status_pill('Returned', 'neutral');
