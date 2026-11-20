@@ -15,9 +15,16 @@ if (!in_array($filter, $validFilters)) {
 }
 
 // Fetch tab counts
+$todayStr      = date('Y-m-d');
 $countAll      = (int)$pdo->query("SELECT COUNT(*) FROM loans")->fetchColumn();
-$countActive   = (int)$pdo->query("SELECT COUNT(*) FROM loans WHERE date_returned IS NULL AND due_date >= CURDATE()")->fetchColumn();
-$countOverdue  = (int)$pdo->query("SELECT COUNT(*) FROM loans WHERE date_returned IS NULL AND due_date < CURDATE()")->fetchColumn();
+$stmtActive    = $pdo->prepare("SELECT COUNT(*) FROM loans WHERE date_returned IS NULL AND due_date >= ?");
+$stmtActive->execute([$todayStr]);
+$countActive   = (int)$stmtActive->fetchColumn();
+
+$stmtOverdue   = $pdo->prepare("SELECT COUNT(*) FROM loans WHERE date_returned IS NULL AND due_date < ?");
+$stmtOverdue->execute([$todayStr]);
+$countOverdue  = (int)$stmtOverdue->fetchColumn();
+
 $countReturned = (int)$pdo->query("SELECT COUNT(*) FROM loans WHERE date_returned IS NOT NULL")->fetchColumn();
 $totalOnLoan   = $countActive + $countOverdue;
 
@@ -34,7 +41,7 @@ $sql = "SELECT l.loan_id AS id,
                l.date_returned,
                CASE
                    WHEN l.date_returned IS NOT NULL THEN 'returned'
-                   WHEN l.due_date < CURDATE() THEN 'overdue'
+                   WHEN l.due_date < '$todayStr' THEN 'overdue'
                    ELSE 'active'
                END AS computed_status
         FROM loans l
@@ -52,9 +59,9 @@ if ($search !== '') {
 if ($filter === 'returned') {
     $sql .= " AND l.date_returned IS NOT NULL";
 } elseif ($filter === 'active') {
-    $sql .= " AND l.date_returned IS NULL AND l.due_date >= CURDATE()";
+    $sql .= " AND l.date_returned IS NULL AND l.due_date >= '$todayStr'";
 } elseif ($filter === 'overdue') {
-    $sql .= " AND l.date_returned IS NULL AND l.due_date < CURDATE()";
+    $sql .= " AND l.date_returned IS NULL AND l.due_date < '$todayStr'";
 }
 
 $sql .= " ORDER BY l.loan_id DESC";

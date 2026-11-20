@@ -11,11 +11,12 @@ $output = fopen('php://output', 'w');
 // Header row
 fputcsv($output, ['Loan ID', 'Book Title', 'ISBN', 'Member Name', 'Member Number', 'Date Issued', 'Due Date', 'Date Returned', 'Status']);
 
+$todayStr = date('Y-m-d');
 $sql = "SELECT l.loan_id AS id, b.title AS book_title, b.isbn, m.full_name AS member_name, m.member_no AS member_number,
                l.date_issued, l.due_date, l.date_returned,
                CASE
                    WHEN l.date_returned IS NOT NULL THEN 'returned'
-                   WHEN l.due_date < CURDATE() THEN 'overdue'
+                   WHEN l.due_date < '$todayStr' THEN 'overdue'
                    ELSE 'active'
                END AS status
         FROM loans l

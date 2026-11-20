@@ -6,7 +6,10 @@ global $pdo;
 $overdueNavCount = 0;
 if (isset($pdo)) {
     try {
-        $overdueNavCount = (int) $pdo->query("SELECT COUNT(*) FROM loans WHERE date_returned IS NULL AND due_date < CURDATE()")->fetchColumn();
+        $todayStr = date('Y-m-d');
+        $stmtNav = $pdo->prepare("SELECT COUNT(*) FROM loans WHERE date_returned IS NULL AND due_date < ?");
+        $stmtNav->execute([$todayStr]);
+        $overdueNavCount = (int)$stmtNav->fetchColumn();
     } catch (Exception $e) {
     }
 }

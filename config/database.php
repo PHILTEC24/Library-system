@@ -110,18 +110,25 @@ function _connect_pgsql_url($urlStr) {
         PDO::ATTR_EMULATE_PREPARES   => false,
     ]);
 
+    // Always ensure PostgreSQL compatibility functions exist
+    try {
+        $conn->exec("
+            CREATE OR REPLACE FUNCTION CURDATE() RETURNS date AS $$ SELECT CURRENT_DATE; $$ LANGUAGE SQL STABLE;
+            CREATE OR REPLACE FUNCTION DATEDIFF(date1 date, date2 date) RETURNS integer AS $$ SELECT (date1 - date2)::integer; $$ LANGUAGE SQL IMMUTABLE;
+            CREATE OR REPLACE FUNCTION DATE_ADD(d date, i interval) RETURNS date AS $$ SELECT (d + i)::date; $$ LANGUAGE SQL IMMUTABLE;
+            CREATE OR REPLACE FUNCTION LEAST(VARIADIC arr anyarray) RETURNS anyelement AS $$ SELECT min(x) FROM unnest(arr) g(x); $$ LANGUAGE SQL IMMUTABLE;
+        ");
+    } catch (Exception $e) {
+        error_log("Notice: PgSQL functions check: " . $e->getMessage());
+    }
+
     // Check if tables exist, otherwise run migration
     try {
         $check = $conn->query("SELECT to_regclass('public.users')")->fetchColumn();
         if (!$check) {
             $migrator = __DIR__ . '/../database/migrate_neon.php';
             if (file_exists($migrator)) {
-                // Compatibility functions and schema
-                $conn->exec("
-                    CREATE OR REPLACE FUNCTION CURDATE() RETURNS date AS $$ SELECT CURRENT_DATE; $$ LANGUAGE SQL STABLE;
-                    CREATE OR REPLACE FUNCTION DATEDIFF(date1 date, date2 date) RETURNS integer AS $$ SELECT (date1 - date2)::integer; $$ LANGUAGE SQL IMMUTABLE;
-                    CREATE OR REPLACE FUNCTION LEAST(VARIADIC arr anyarray) RETURNS anyelement AS $$ SELECT min(x) FROM unnest(arr) g(x); $$ LANGUAGE SQL IMMUTABLE;
-                ");
+                require_once $migrator;
             }
         }
     } catch (Exception $e) {
@@ -145,14 +152,16 @@ function _connect_sqlite() {
     ]);
 
     // MySQL compatibility functions
-    $conn->sqliteCreateFunction('CURDATE', fn() => date('Y-m-d'));
-    $conn->sqliteCreateFunction('DATEDIFF', function($d1, $d2) {
-        $t1 = strtotime($d1);
-        $t2 = strtotime($d2);
-        if ($t1 === false || $t2 === false) return 0;
-        return (int)round(($t1 - $t2) / 86400);
-    });
-    $conn->sqliteCreateFunction('LEAST', fn(...$args) => count($args) ? min($args) : 0);
+    if (method_exists($conn, 'sqliteCreateFunction')) {
+        @$conn->sqliteCreateFunction('CURDATE', fn() => date('Y-m-d'));
+        @$conn->sqliteCreateFunction('DATEDIFF', function($d1, $d2) {
+            $t1 = strtotime($d1);
+            $t2 = strtotime($d2);
+            if ($t1 === false || $t2 === false) return 0;
+            return (int)round(($t1 - $t2) / 86400);
+        });
+        @$conn->sqliteCreateFunction('LEAST', fn(...$args) => count($args) ? min($args) : 0);
+    }
 
     require_once __DIR__ . '/../database/init_sqlite.php';
     init_sqlite_database($conn);

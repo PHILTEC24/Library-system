@@ -24,19 +24,39 @@ $nextWeekStr        = date('Y-m-d', strtotime('+7 days'));
 $stmtDue            = $pdo->prepare("SELECT COUNT(*) FROM loans WHERE date_returned IS NULL AND due_date BETWEEN ? AND ?");
 $stmtDue->execute([$todayStr, $nextWeekStr]);
 $dueThisWeek        = (int)$stmtDue->fetchColumn();
-$overdueLoans       = (int)$pdo->query("SELECT COUNT(*) FROM loans WHERE date_returned IS NULL AND due_date < CURDATE()")->fetchColumn();
-$oldestOverdueDays  = (int)$pdo->query("SELECT COALESCE(MAX(DATEDIFF(CURDATE(), due_date)), 0) FROM loans WHERE date_returned IS NULL AND due_date < CURDATE()")->fetchColumn();
+$stmtOverdue        = $pdo->prepare("SELECT COUNT(*) FROM loans WHERE date_returned IS NULL AND due_date < ?");
+$stmtOverdue->execute([$todayStr]);
+$overdueLoans       = (int)$stmtOverdue->fetchColumn();
+
+$stmtOldest         = $pdo->prepare("SELECT MIN(due_date) FROM loans WHERE date_returned IS NULL AND due_date < ?");
+$stmtOldest->execute([$todayStr]);
+$oldestDueDate      = $stmtOldest->fetchColumn();
+$oldestOverdueDays  = 0;
+if ($oldestDueDate) {
+    $todayObj = new DateTime('today');
+    $oldestDue = new DateTime($oldestDueDate);
+    $oldestOverdueDays = max(0, (int)$oldestDue->diff($todayObj)->format('%r%a'));
+}
 
 // Needs Attention: Overdue List (limit 5, using updated ERD keys)
-$overdueList = $pdo->query(
-    "SELECT l.loan_id AS id, b.title, sc.category_id, m.full_name, m.phone, l.due_date, DATEDIFF(CURDATE(), l.due_date) AS days_overdue
+$stmtOverdueList = $pdo->prepare(
+    "SELECT l.loan_id AS id, b.title, sc.category_id, m.full_name, m.phone, l.due_date
      FROM loans l
      JOIN books b ON l.book_id = b.book_id
      LEFT JOIN sub_categories sc ON b.sub_category_id = sc.sub_category_id
      JOIN members m ON l.member_id = m.member_id
-     WHERE l.date_returned IS NULL AND l.due_date < CURDATE()
-     ORDER BY days_overdue DESC LIMIT 5"
-)->fetchAll(PDO::FETCH_ASSOC);
+     WHERE l.date_returned IS NULL AND l.due_date < ?
+     ORDER BY l.due_date ASC LIMIT 5"
+);
+$stmtOverdueList->execute([$todayStr]);
+$overdueList = $stmtOverdueList->fetchAll(PDO::FETCH_ASSOC);
+
+$todayObj = new DateTime('today');
+foreach ($overdueList as &$item) {
+    $dueObj = new DateTime($item['due_date']);
+    $item['days_overdue'] = max(0, (int)$dueObj->diff($todayObj)->format('%r%a'));
+}
+unset($item);
 
 // Recent Loans (limit 5, using updated ERD keys)
 $recentLoans = $pdo->query(
@@ -185,7 +205,7 @@ require_once __DIR__ . '/../includes/navbar.php';
                                         <div>Due <?= format_date($item['due_date']) ?></div>
                                         <div class="text-danger fw-semibold">
                                             <?= (int)$item['days_overdue'] ?> days overdue
-                                            <span class="badge bg-danger-subtle text-danger ms-1"><?= ((int)$item['days_overdue'] * 5) ?>% fine</span>
+                                            <span class="badge bg-danger-subtle text-danger ms-1"><?= ((int)$item['days_overdue'] * 5) ?>% of book price</span>
                                         </div>
                                     </td>
 
