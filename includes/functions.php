@@ -93,12 +93,19 @@ function spine_tile($title, $categoryId = 1, $size = 'sm') {
     $cleanTitle = trim((string)$title);
     $firstChar = mb_strtoupper(mb_substr($cleanTitle, 0, 1, 'UTF-8'), 'UTF-8');
     if ($firstChar === '' || !preg_match('/[A-Z0-9]/i', $firstChar)) {
-        $firstChar = '?';
+        $firstChar = '•';
     }
     $catIdx = (abs((int)$categoryId) % 8) + 1;
     $sizeClass = in_array($size, ['sm', 'md', 'lg']) ? 'lms-spine--' . $size : 'lms-spine--sm';
-    return '<span class="lms-spine ' . $sizeClass . ' lms-spine--cat-' . $catIdx . '" aria-hidden="true">' .
-           '<span class="lms-spine__letter">' . e($firstChar) . '</span>' .
+    return '<span class="lms-spine ' . $sizeClass . ' lms-spine--cat-' . $catIdx . '" title="' . e($cleanTitle) . '" aria-hidden="true">' .
+           '<span class="lms-spine__binding"></span>' .
+           '<span class="lms-spine__cover">' .
+               '<span class="lms-spine__emboss">' .
+                   '<span class="lms-spine__letter">' . e($firstChar) . '</span>' .
+               '</span>' .
+           '</span>' .
+           '<span class="lms-spine__pages"></span>' .
+           '<span class="lms-spine__ribbon"></span>' .
            '</span>';
 }
 

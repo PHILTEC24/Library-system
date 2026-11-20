@@ -169,7 +169,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
       if (previewSpine) {
         previewSpine.style.setProperty('--spine', spineColor);
-        previewSpine.textContent = firstLetter;
+        previewSpine.innerHTML = `
+          <span class="lms-spine__binding"></span>
+          <span class="lms-spine__cover">
+            <span class="lms-spine__emboss">
+              <span class="lms-spine__letter">${firstLetter}</span>
+            </span>
+          </span>
+          <span class="lms-spine__pages"></span>
+          <span class="lms-spine__ribbon"></span>
+        `;
       }
       if (previewTitle) {
         previewTitle.textContent = title;
@@ -241,6 +250,64 @@ document.addEventListener('DOMContentLoaded', function () {
         icon.className = isPassword ? 'bi bi-eye-slash' : 'bi bi-eye';
       }
       togglePassBtn.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
+    });
+  }
+
+  // =========================================================================
+  // 7b. Demo Credentials Autofill Helper
+  // =========================================================================
+  const demoFillBtn = document.getElementById('lmsDemoFill');
+  if (demoFillBtn) {
+    demoFillBtn.addEventListener('click', function () {
+      const u = document.getElementById('username');
+      const p = document.getElementById('password');
+      if (u && p) {
+        u.value = 'admin';
+        p.value = 'password';
+        p.focus();
+      }
+    });
+  }
+
+  // =========================================================================
+  // 8. Dark Mode Toggle (persisted via localStorage)
+  // =========================================================================
+  const DARK_KEY = 'lms-theme';
+  const root = document.documentElement;
+
+  function applyTheme(theme) {
+    root.setAttribute('data-theme', theme);
+    localStorage.setItem(DARK_KEY, theme);
+  }
+
+  // On load — restore saved preference, then fall back to system preference
+  (function () {
+    const saved = localStorage.getItem(DARK_KEY);
+    if (saved) {
+      applyTheme(saved);
+    } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      applyTheme('dark');
+    } else {
+      applyTheme('light');
+    }
+  })();
+
+  // Wire up all toggle buttons (sidebar footer + topbar)
+  document.querySelectorAll('.lms-theme-toggle').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      const current = root.getAttribute('data-theme') || 'light';
+      applyTheme(current === 'dark' ? 'light' : 'dark');
+    });
+    btn.setAttribute('title', 'Toggle dark / light mode');
+    btn.setAttribute('aria-label', 'Toggle dark / light mode');
+  });
+
+  // Listen for OS-level theme changes
+  if (window.matchMedia) {
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function (e) {
+      if (!localStorage.getItem(DARK_KEY)) {
+        applyTheme(e.matches ? 'dark' : 'light');
+      }
     });
   }
 });
