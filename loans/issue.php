@@ -69,8 +69,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             try {
                 $pdo->beginTransaction();
 
-                // Re-check available copies with row lock (FOR UPDATE)
-                $lockStmt = $pdo->prepare('SELECT available_copies FROM books WHERE book_id = ? FOR UPDATE');
+                // Re-check available copies with row lock (FOR UPDATE where supported)
+                $driver = strtolower((string)$pdo->getAttribute(PDO::ATTR_DRIVER_NAME));
+                $forUpdate = ($driver === 'sqlite') ? '' : ' FOR UPDATE';
+                $lockStmt = $pdo->prepare("SELECT available_copies FROM books WHERE book_id = ?$forUpdate");
                 $lockStmt->execute([$book_id]);
                 $currentAvail = (int) $lockStmt->fetchColumn();
 
