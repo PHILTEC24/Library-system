@@ -17,9 +17,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($username) || empty($password)) {
         $error = 'Wrong username or password.';
     } else {
-        $stmt = $pdo->prepare('SELECT user_id AS id, username, password_hash, full_name, role FROM users WHERE username = ?');
-        $stmt->execute([$username]);
-        $user = $stmt->fetch();
+        try {
+            $stmt = $pdo->prepare('SELECT id, username, password_hash, full_name, role FROM users WHERE username = ?');
+            $stmt->execute([$username]);
+            $user = $stmt->fetch();
+        } catch (PDOException $e) {
+            // Fallback in case column is named user_id in another schema revision
+            $stmt = $pdo->prepare('SELECT user_id AS id, username, password_hash, full_name, role FROM users WHERE username = ?');
+            $stmt->execute([$username]);
+            $user = $stmt->fetch();
+        }
 
         if ($user && password_verify($password, $user['password_hash'])) {
             session_regenerate_id(true);
