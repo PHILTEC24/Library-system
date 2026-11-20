@@ -183,8 +183,9 @@ require_once __DIR__ . '/../includes/navbar.php';
 
                         // Pill style
                         if ($isReturned) {
-                            $pillClass = 'lms-pill--neutral';
-                            $statusLabel = 'Returned';
+                            $isLateReturn = (!empty($loan['date_returned']) && $loan['date_returned'] > $loan['due_date']);
+                            $pillClass = $isLateReturn ? 'lms-pill--warning' : 'lms-pill--neutral';
+                            $statusLabel = $isLateReturn ? 'Returned (Late)' : 'Returned';
                         } elseif ($isOverdue) {
                             $pillClass = 'lms-pill--danger';
                             $statusLabel = 'Overdue';

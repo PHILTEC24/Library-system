@@ -71,7 +71,14 @@ function format_date($date, $format = 'd M Y') {
 
 function relative_due($dueDate, $dateReturned = null) {
     if ($dateReturned) {
-        return '<span class="text-muted">Returned</span>';
+        $due = new DateTime($dueDate);
+        $returned = new DateTime($dateReturned);
+        $diffDays = (int)$due->diff($returned)->format('%r%a');
+        if ($diffDays > 0) {
+            $finePercent = $diffDays * 5;
+            return '<span class="text-danger fw-medium">' . $diffDays . ' ' . ($diffDays === 1 ? 'day' : 'days') . ' delay</span> <span class="badge bg-danger-subtle text-danger ms-1">' . $finePercent . '% of book price</span>';
+        }
+        return '<span class="text-muted">Returned on time</span>';
     }
     $today = new DateTime('today');
     $due = new DateTime($dueDate);
@@ -80,7 +87,7 @@ function relative_due($dueDate, $dateReturned = null) {
     if ($diffDays < 0) {
         $overdue = abs($diffDays);
         $finePercent = $overdue * 5;
-        return '<span class="text-danger fw-semibold">' . $overdue . ' ' . ($overdue === 1 ? 'day' : 'days') . ' overdue</span> <span class="badge bg-danger-subtle text-danger ms-1">' . $finePercent . '% fine</span>';
+        return '<span class="text-danger fw-semibold">' . $overdue . ' ' . ($overdue === 1 ? 'day' : 'days') . ' overdue</span> <span class="badge bg-danger-subtle text-danger ms-1">' . $finePercent . '% of book price</span>';
     } elseif ($diffDays === 0) {
         return '<span class="text-warning fw-semibold">Due today</span>';
     } elseif ($diffDays <= 3) {
