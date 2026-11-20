@@ -1,5 +1,5 @@
 <?php
-define('BASE_URL', '/library-system');
+if (!defined('BASE_URL')) define('BASE_URL', '/library-system');
 require_once __DIR__ . '/../includes/auth_check.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/functions.php';
@@ -19,7 +19,7 @@ $totalMembers       = (int)$pdo->query('SELECT COUNT(*) FROM members')->fetchCol
 $activeMembers      = (int)$pdo->query("SELECT COUNT(*) FROM members WHERE status = 'active'")->fetchColumn();
 $suspendedMembers   = (int)$pdo->query("SELECT COUNT(*) FROM members WHERE status = 'suspended'")->fetchColumn();
 $activeLoans        = (int)$pdo->query("SELECT COUNT(*) FROM loans WHERE date_returned IS NULL")->fetchColumn();
-$dueThisWeek        = (int)$pdo->query("SELECT COUNT(*) FROM loans WHERE date_returned IS NULL AND due_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 7 DAY)")->fetchColumn();
+$dueThisWeek        = (int)$pdo->query("SELECT COUNT(*) FROM loans WHERE date_returned IS NULL AND due_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL '7 DAY')")->fetchColumn();
 $overdueLoans       = (int)$pdo->query("SELECT COUNT(*) FROM loans WHERE date_returned IS NULL AND due_date < CURDATE()")->fetchColumn();
 $oldestOverdueDays  = (int)$pdo->query("SELECT COALESCE(MAX(DATEDIFF(CURDATE(), due_date)), 0) FROM loans WHERE date_returned IS NULL AND due_date < CURDATE()")->fetchColumn();
 

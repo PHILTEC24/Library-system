@@ -1,0 +1,13 @@
+{
+  "name": "library-system",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "php -l index.php && php -l config/database.php",
+    "start": "php -S 127.0.0.1:8000 router.php"
+  },
+  "dependencies": {
+    "@neon/config": "^1.14.5",
+    "@neon/env": "^2.1.8"
+  }
+}

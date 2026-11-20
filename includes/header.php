@@ -1,7 +1,7 @@
 <?php
 if (session_status() === PHP_SESSION_NONE) session_start();
 if (!defined('BASE_URL')) {
-    define('BASE_URL', '/library-system');
+    if (!defined('BASE_URL')) define('BASE_URL', '/library-system');
 }
 ?>
 <!DOCTYPE html>

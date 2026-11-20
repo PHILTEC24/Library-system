@@ -1,5 +1,5 @@
 <?php
-define('BASE_URL', '/library-system');
+if (!defined('BASE_URL')) define('BASE_URL', '/library-system');
 session_start();
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/functions.php';
@@ -18,12 +18,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'Wrong username or password.';
     } else {
         try {
-            $stmt = $pdo->prepare('SELECT id, username, password_hash, full_name, role FROM users WHERE username = ?');
+            $stmt = $pdo->prepare('SELECT user_id AS id, user_id, username, password_hash, full_name, role FROM users WHERE username = ?');
             $stmt->execute([$username]);
             $user = $stmt->fetch();
         } catch (PDOException $e) {
-            // Fallback in case column is named user_id in another schema revision
-            $stmt = $pdo->prepare('SELECT user_id AS id, username, password_hash, full_name, role FROM users WHERE username = ?');
+            $stmt = $pdo->prepare('SELECT id, username, password_hash, full_name, role FROM users WHERE username = ?');
             $stmt->execute([$username]);
             $user = $stmt->fetch();
         }

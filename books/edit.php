@@ -1,5 +1,5 @@
 <?php
-define('BASE_URL', '/library-system');
+if (!defined('BASE_URL')) define('BASE_URL', '/library-system');
 require_once __DIR__ . '/../includes/auth_check.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/functions.php';
@@ -15,13 +15,13 @@ if ($id <= 0) {
     exit;
 }
 
-$bookStmt = $pdo->prepare('
+$bookStmt = $pdo->prepare("
     SELECT b.book_id AS id, b.*, sc.category_id,
-           (SELECT author_id FROM book_authors WHERE book_id = b.book_id ORDER BY (author_role="primary") DESC LIMIT 1) AS author_id
+           (SELECT author_id FROM book_authors WHERE book_id = b.book_id ORDER BY (author_role='primary') DESC LIMIT 1) AS author_id
     FROM books b
     LEFT JOIN sub_categories sc ON b.sub_category_id = sc.sub_category_id
     WHERE b.book_id = ?
-');
+");
 $bookStmt->execute([$id]);
 $book = $bookStmt->fetch(PDO::FETCH_ASSOC);
 

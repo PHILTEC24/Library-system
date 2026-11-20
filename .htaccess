@@ -1,0 +1,15 @@
+# Apache Configuration for Library Management System (XAMPP / Production)
+
+# Default index file
+DirectoryIndex index.php
+
+# Prevent directory browsing
+Options -Indexes
+
+# Protect sensitive files from direct web access
+<FilesMatch "^\.(env|neon|git)|.*\.sql$|package(-lock)?\.json">
+    Require all denied
+</FilesMatch>
+
+# Enable UTF-8 encoding
+AddDefaultCharset UTF-8
