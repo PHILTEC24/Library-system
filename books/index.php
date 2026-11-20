@@ -137,12 +137,22 @@ require_once __DIR__ . '/../includes/navbar.php';
                     </noscript>
                 </div>
 
-                <div class="text-muted small">
-                    <?php if ($isFiltered): ?>
-                        Showing <?= count($books) ?> of <?= $totalTitles ?> books
-                    <?php else: ?>
-                        <?= pluralize($totalTitles, 'book', 'books') ?>
-                    <?php endif; ?>
+                <div class="d-flex align-items-center justify-content-between gap-2">
+                    <div class="text-muted small">
+                        <?php if ($isFiltered): ?>
+                            Showing <?= count($books) ?> of <?= $totalTitles ?> books
+                        <?php else: ?>
+                            <?= pluralize($totalTitles, 'book', 'books') ?>
+                        <?php endif; ?>
+                    </div>
+                    <div class="btn-group btn-group-sm lms-view-toggle ms-auto" role="group" aria-label="Book display view">
+                        <button type="button" class="btn btn-outline-secondary active" id="lmsViewList" title="List view" aria-pressed="true">
+                            <i class="bi bi-list-ul"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" id="lmsViewGrid" title="Grid view" aria-pressed="false">
+                            <i class="bi bi-grid-fill"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -173,8 +183,8 @@ require_once __DIR__ . '/../includes/navbar.php';
         </form>
     </div>
 
-    <!-- Data Table (Section 6.4 & 7.3) -->
-    <div class="table-responsive">
+    <!-- List / Table View -->
+    <div id="lmsBooksListView" class="table-responsive">
         <table class="lms-table lms-table-stacked align-middle">
             <caption class="visually-hidden">Catalogue of library books, availability and copies</caption>
             <thead>
@@ -308,7 +318,99 @@ require_once __DIR__ . '/../includes/navbar.php';
         </table>
     </div>
 
-    <!-- Table Footer -->
+    <!-- Grid / Card View -->
+    <div id="lmsBooksGridView" class="lms-books-grid" style="display: none;">
+        <?php if (empty($books)): ?>
+            <div class="w-100 grid-column-full">
+                <div class="lms-empty-state">
+                    <div class="lms-empty-state__icon">
+                        <?= spine_tile('?', 0, 'lg') ?>
+                    </div>
+                    <?php if ($isFiltered): ?>
+                        <h2 class="lms-empty-state__title">No books match your filter</h2>
+                        <p class="lms-empty-state__help">Try adjusting your category, subcategory or search term.</p>
+                        <a href="<?= BASE_URL ?>/books/index.php" class="btn btn-secondary">Clear filters</a>
+                    <?php else: ?>
+                        <h2 class="lms-empty-state__title">No books in catalogue yet</h2>
+                        <p class="lms-empty-state__help">Add your first book to begin cataloguing and issuing loans.</p>
+                        <a href="<?= BASE_URL ?>/books/create.php" class="btn btn-primary">Add book</a>
+                    <?php endif; ?>
+                </div>
+            </div>
+        <?php else: ?>
+            <?php foreach ($books as $book): ?>
+                <?php
+                $catId = intval($book['category_id'] ?? 0);
+                $palette = ['#3F5BA9', '#2E7D6B', '#8C4A6B', '#A85A17', '#5A6B3A', '#5E548E'];
+                $dotColor = $palette[abs($catId) % 6];
+                ?>
+                <div class="lms-book-card">
+                    <div class="lms-book-card__cover-wrap">
+                        <?php if (!empty($book['cover_image'])): ?>
+                            <img src="<?= BASE_URL ?>/books/media.php?id=<?= (int)$book['id'] ?>&amp;type=cover"
+                                 alt="Cover of <?= e($book['title']) ?>"
+                                 class="lms-book-card__img">
+                        <?php else: ?>
+                            <?= spine_tile($book['title'], $catId, 'lg') ?>
+                        <?php endif; ?>
+                    </div>
+
+                    <div class="lms-book-card__meta">
+                        <span class="d-inline-flex align-items-center">
+                            <span class="lms-category-dot" style="background-color: <?= $dotColor ?>;"></span>
+                            <span class="fw-medium text-truncate" style="max-width: 140px;"><?= e($book['category_name'] ?? 'Uncategorized') ?></span>
+                        </span>
+                        <span class="text-muted small"><?= e($book['year_published'] ?? '—') ?></span>
+                    </div>
+
+                    <h3 class="lms-book-card__title" title="<?= e($book['title']) ?>">
+                        <?= e($book['title']) ?>
+                    </h3>
+
+                    <div class="lms-book-card__author" title="<?= e($book['author_name'] ?? 'Unknown author') ?>">
+                        <i class="bi bi-person me-1"></i><?= e($book['author_name'] ?? 'Unknown author') ?>
+                    </div>
+
+                    <div class="lms-book-card__avail">
+                        <?= availability_meter($book['available_copies'], $book['total_copies']) ?>
+                    </div>
+
+                    <div class="lms-book-card__actions">
+                        <?php if (!empty($book['ebook_file'])): ?>
+                            <a href="<?= BASE_URL ?>/books/media.php?id=<?= (int)$book['id'] ?>&amp;type=ebook"
+                               target="_blank" rel="noopener"
+                               class="lms-btn-icon" title="Open e-book" aria-label="Open e-book <?= e($book['title']) ?>">
+                                <i class="bi bi-file-earmark-pdf"></i>
+                            </a>
+                            <a href="<?= BASE_URL ?>/books/media.php?id=<?= (int)$book['id'] ?>&amp;type=ebook&amp;download=1"
+                               class="lms-btn-icon" title="Download e-book" aria-label="Download e-book <?= e($book['title']) ?>">
+                                <i class="bi bi-download"></i>
+                            </a>
+                        <?php endif; ?>
+                        <a href="<?= BASE_URL ?>/books/edit.php?id=<?= $book['id'] ?>"
+                           class="lms-btn-icon"
+                           title="Edit book" aria-label="Edit <?= e($book['title']) ?>">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+
+                        <?php if (is_admin()): ?>
+                            <a href="<?= BASE_URL ?>/books/delete.php?id=<?= $book['id'] ?>"
+                               class="lms-btn-icon lms-btn-icon--danger"
+                               title="Delete book" aria-label="Delete <?= e($book['title']) ?>"
+                               data-confirm="Delete '<?= e($book['title']) ?>'? This cannot be undone."
+                               data-confirm-title="Delete this book?"
+                               data-confirm-message="&quot;<?= e($book['title']) ?>&quot; will be permanently deleted from the catalogue."
+                               data-confirm-button="Delete book"
+                               data-confirm-style="danger"
+                               onclick="return confirm('Delete this book?');">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        <?php endif; ?>
+    </div>
     <div class="lms-table-footer">
         <span><?= pluralize(count($books), 'book', 'books') ?></span>
         <span class="text-muted small">Updated in real time</span>

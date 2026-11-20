@@ -43,17 +43,7 @@ document.addEventListener('DOMContentLoaded', function () {
       const toast = new bootstrap.Toast(toastEl, {
         autohide: !isError,
         delay: 5000
-        // Auto-close mobile offcanvas sidebar when clicking any navigation link
-  const mobileSidebar = document.getElementById('lmsMobileSidebar');
-  if (mobileSidebar && typeof bootstrap !== 'undefined' && bootstrap.Offcanvas) {
-    mobileSidebar.querySelectorAll('.lms-nav-link').forEach(function (link) {
-      link.addEventListener('click', function () {
-        const inst = bootstrap.Offcanvas.getInstance(mobileSidebar);
-        if (inst) inst.hide();
       });
-    });
-  }
-});
       toast.show();
     }
   }
@@ -111,17 +101,7 @@ document.addEventListener('DOMContentLoaded', function () {
       };
 
       confirmModalInstance.show();
-      // Auto-close mobile offcanvas sidebar when clicking any navigation link
-  const mobileSidebar = document.getElementById('lmsMobileSidebar');
-  if (mobileSidebar && typeof bootstrap !== 'undefined' && bootstrap.Offcanvas) {
-    mobileSidebar.querySelectorAll('.lms-nav-link').forEach(function (link) {
-      link.addEventListener('click', function () {
-        const inst = bootstrap.Offcanvas.getInstance(mobileSidebar);
-        if (inst) inst.hide();
-      });
     });
-  }
-});
 
     if (modalBtn) {
       modalBtn.addEventListener('click', function () {
@@ -131,17 +111,7 @@ document.addEventListener('DOMContentLoaded', function () {
           confirmModalInstance.hide();
           action();
         }
-        // Auto-close mobile offcanvas sidebar when clicking any navigation link
-  const mobileSidebar = document.getElementById('lmsMobileSidebar');
-  if (mobileSidebar && typeof bootstrap !== 'undefined' && bootstrap.Offcanvas) {
-    mobileSidebar.querySelectorAll('.lms-nav-link').forEach(function (link) {
-      link.addEventListener('click', function () {
-        const inst = bootstrap.Offcanvas.getInstance(mobileSidebar);
-        if (inst) inst.hide();
       });
-    });
-  }
-});
     }
   }
 
@@ -153,28 +123,8 @@ document.addEventListener('DOMContentLoaded', function () {
       if (select.form) {
         select.form.submit();
       }
-      // Auto-close mobile offcanvas sidebar when clicking any navigation link
-  const mobileSidebar = document.getElementById('lmsMobileSidebar');
-  if (mobileSidebar && typeof bootstrap !== 'undefined' && bootstrap.Offcanvas) {
-    mobileSidebar.querySelectorAll('.lms-nav-link').forEach(function (link) {
-      link.addEventListener('click', function () {
-        const inst = bootstrap.Offcanvas.getInstance(mobileSidebar);
-        if (inst) inst.hide();
-      });
     });
-  }
-});
-    // Auto-close mobile offcanvas sidebar when clicking any navigation link
-  const mobileSidebar = document.getElementById('lmsMobileSidebar');
-  if (mobileSidebar && typeof bootstrap !== 'undefined' && bootstrap.Offcanvas) {
-    mobileSidebar.querySelectorAll('.lms-nav-link').forEach(function (link) {
-      link.addEventListener('click', function () {
-        const inst = bootstrap.Offcanvas.getInstance(mobileSidebar);
-        if (inst) inst.hide();
-      });
-    });
-  }
-});
+  });
 
   // =========================================================================
   // 4. Close Mobile Sidebar on Link Click
@@ -185,28 +135,8 @@ document.addEventListener('DOMContentLoaded', function () {
     mobileOffcanvasEl.querySelectorAll('.lms-nav-link').forEach(function (link) {
       link.addEventListener('click', function () {
         offcanvasInstance.hide();
-        // Auto-close mobile offcanvas sidebar when clicking any navigation link
-  const mobileSidebar = document.getElementById('lmsMobileSidebar');
-  if (mobileSidebar && typeof bootstrap !== 'undefined' && bootstrap.Offcanvas) {
-    mobileSidebar.querySelectorAll('.lms-nav-link').forEach(function (link) {
-      link.addEventListener('click', function () {
-        const inst = bootstrap.Offcanvas.getInstance(mobileSidebar);
-        if (inst) inst.hide();
       });
     });
-  }
-});
-      // Auto-close mobile offcanvas sidebar when clicking any navigation link
-  const mobileSidebar = document.getElementById('lmsMobileSidebar');
-  if (mobileSidebar && typeof bootstrap !== 'undefined' && bootstrap.Offcanvas) {
-    mobileSidebar.querySelectorAll('.lms-nav-link').forEach(function (link) {
-      link.addEventListener('click', function () {
-        const inst = bootstrap.Offcanvas.getInstance(mobileSidebar);
-        if (inst) inst.hide();
-      });
-    });
-  }
-});
   }
 
   // =========================================================================
@@ -320,17 +250,7 @@ document.addEventListener('DOMContentLoaded', function () {
         icon.className = isPassword ? 'bi bi-eye-slash' : 'bi bi-eye';
       }
       togglePassBtn.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
-      // Auto-close mobile offcanvas sidebar when clicking any navigation link
-  const mobileSidebar = document.getElementById('lmsMobileSidebar');
-  if (mobileSidebar && typeof bootstrap !== 'undefined' && bootstrap.Offcanvas) {
-    mobileSidebar.querySelectorAll('.lms-nav-link').forEach(function (link) {
-      link.addEventListener('click', function () {
-        const inst = bootstrap.Offcanvas.getInstance(mobileSidebar);
-        if (inst) inst.hide();
-      });
     });
-  }
-});
   }
 
   // =========================================================================
@@ -346,17 +266,7 @@ document.addEventListener('DOMContentLoaded', function () {
         p.value = 'password';
         p.focus();
       }
-      // Auto-close mobile offcanvas sidebar when clicking any navigation link
-  const mobileSidebar = document.getElementById('lmsMobileSidebar');
-  if (mobileSidebar && typeof bootstrap !== 'undefined' && bootstrap.Offcanvas) {
-    mobileSidebar.querySelectorAll('.lms-nav-link').forEach(function (link) {
-      link.addEventListener('click', function () {
-        const inst = bootstrap.Offcanvas.getInstance(mobileSidebar);
-        if (inst) inst.hide();
-      });
     });
-  }
-});
   }
 
   // =========================================================================
@@ -388,30 +298,10 @@ document.addEventListener('DOMContentLoaded', function () {
     btn.addEventListener('click', function () {
       const current = root.getAttribute('data-theme') || 'light';
       applyTheme(current === 'dark' ? 'light' : 'dark');
-      // Auto-close mobile offcanvas sidebar when clicking any navigation link
-  const mobileSidebar = document.getElementById('lmsMobileSidebar');
-  if (mobileSidebar && typeof bootstrap !== 'undefined' && bootstrap.Offcanvas) {
-    mobileSidebar.querySelectorAll('.lms-nav-link').forEach(function (link) {
-      link.addEventListener('click', function () {
-        const inst = bootstrap.Offcanvas.getInstance(mobileSidebar);
-        if (inst) inst.hide();
-      });
     });
-  }
-});
     btn.setAttribute('title', 'Toggle dark / light mode');
     btn.setAttribute('aria-label', 'Toggle dark / light mode');
-    // Auto-close mobile offcanvas sidebar when clicking any navigation link
-  const mobileSidebar = document.getElementById('lmsMobileSidebar');
-  if (mobileSidebar && typeof bootstrap !== 'undefined' && bootstrap.Offcanvas) {
-    mobileSidebar.querySelectorAll('.lms-nav-link').forEach(function (link) {
-      link.addEventListener('click', function () {
-        const inst = bootstrap.Offcanvas.getInstance(mobileSidebar);
-        if (inst) inst.hide();
-      });
-    });
-  }
-});
+  });
 
   // Listen for OS-level theme changes
   if (window.matchMedia) {
@@ -419,26 +309,47 @@ document.addEventListener('DOMContentLoaded', function () {
       if (!localStorage.getItem(DARK_KEY)) {
         applyTheme(e.matches ? 'dark' : 'light');
       }
-      // Auto-close mobile offcanvas sidebar when clicking any navigation link
-  const mobileSidebar = document.getElementById('lmsMobileSidebar');
-  if (mobileSidebar && typeof bootstrap !== 'undefined' && bootstrap.Offcanvas) {
-    mobileSidebar.querySelectorAll('.lms-nav-link').forEach(function (link) {
-      link.addEventListener('click', function () {
-        const inst = bootstrap.Offcanvas.getInstance(mobileSidebar);
-        if (inst) inst.hide();
-      });
     });
   }
-});
-  }
-  // Auto-close mobile offcanvas sidebar when clicking any navigation link
-  const mobileSidebar = document.getElementById('lmsMobileSidebar');
-  if (mobileSidebar && typeof bootstrap !== 'undefined' && bootstrap.Offcanvas) {
-    mobileSidebar.querySelectorAll('.lms-nav-link').forEach(function (link) {
-      link.addEventListener('click', function () {
-        const inst = bootstrap.Offcanvas.getInstance(mobileSidebar);
-        if (inst) inst.hide();
-      });
-    });
+
+  // =========================================================================
+  // 9. Book Catalog View Switcher (List vs Grid)
+  // =========================================================================
+  const viewListBtn = document.getElementById('lmsViewList');
+  const viewGridBtn = document.getElementById('lmsViewGrid');
+  const listView = document.getElementById('lmsBooksListView');
+  const gridView = document.getElementById('lmsBooksGridView');
+
+  if (viewListBtn && viewGridBtn && listView && gridView) {
+    const VIEW_KEY = 'lms-books-view';
+
+    function setBookView(mode) {
+      if (mode === 'grid') {
+        listView.style.display = 'none';
+        gridView.style.display = 'grid';
+        viewGridBtn.classList.add('active');
+        viewGridBtn.setAttribute('aria-pressed', 'true');
+        viewListBtn.classList.remove('active');
+        viewListBtn.setAttribute('aria-pressed', 'false');
+        try { localStorage.setItem(VIEW_KEY, 'grid'); } catch (e) {}
+      } else {
+        listView.style.display = '';
+        gridView.style.display = 'none';
+        viewListBtn.classList.add('active');
+        viewListBtn.setAttribute('aria-pressed', 'true');
+        viewGridBtn.classList.remove('active');
+        viewGridBtn.setAttribute('aria-pressed', 'false');
+        try { localStorage.setItem(VIEW_KEY, 'list'); } catch (e) {}
+      }
+    }
+
+    viewListBtn.addEventListener('click', function () { setBookView('list'); });
+    viewGridBtn.addEventListener('click', function () { setBookView('grid'); });
+
+    // Restore saved user preference (defaults to list)
+    try {
+      const savedView = localStorage.getItem(VIEW_KEY) || 'list';
+      setBookView(savedView);
+    } catch (e) {}
   }
 });
