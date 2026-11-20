@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "build": "php -l index.php && php -l config/database.php",
-    "start": "php -S 127.0.0.1:8000 router.php"
+    "start": "php -S 0.0.0.0:${PORT:-8080} router.php"
   },
   "dependencies": {
     "@neon/config": "^1.14.5",

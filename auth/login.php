@@ -1,5 +1,5 @@
 <?php
-if (!defined('BASE_URL')) define('BASE_URL', '/library-system');
+require_once __DIR__ . '/../config/bootstrap.php';
 session_start();
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/functions.php';

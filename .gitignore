@@ -3,4 +3,5 @@ node_modules/
 .env
 .env.local
 *.log
+*.sqlite
 php.ini

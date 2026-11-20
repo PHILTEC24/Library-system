@@ -1,5 +1,5 @@
 <?php
-if (!defined('BASE_URL')) define('BASE_URL', '/library-system');
+require_once __DIR__ . '/config/bootstrap.php';
 session_start();
 if (isset($_SESSION['user_id'])) {
     header('Location: ' . BASE_URL . '/dashboard/index.php');

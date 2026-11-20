@@ -1,68 +1,99 @@
 <?php
-// Load environment variables from .env.local or .env
-$envFiles = [__DIR__ . '/../.env.local', __DIR__ . '/../.env'];
-foreach ($envFiles as $file) {
-    if (file_exists($file)) {
-        $lines = file($file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-        foreach ($lines as $line) {
-            $line = trim($line);
-            if ($line === '' || str_starts_with($line, '#')) continue;
-            if (strpos($line, '=') !== false) {
-                [$k, $v] = explode('=', $line, 2);
-                $k = trim($k);
-                $v = trim($v, " \t\n\r\0\x0B\"'");
-                if (!array_key_exists($k, $_ENV) && getenv($k) === false) {
-                    putenv("$k=$v");
-                    $_ENV[$k] = $v;
-                }
-            }
+require_once __DIR__ . '/bootstrap.php';
+
+// Helper to look up environment variable from multiple possible names
+function _get_db_env(array $names, $default = null) {
+    foreach ($names as $name) {
+        $val = getenv($name);
+        if ($val !== false && $val !== '') {
+            return $val;
+        }
+        if (isset($_ENV[$name]) && $_ENV[$name] !== '') {
+            return $_ENV[$name];
         }
     }
+    return $default;
 }
 
-// Configurable BASE_URL
-if (!defined('BASE_URL')) {
-    $envBase = getenv('BASE_URL') ?: ($_ENV['BASE_URL'] ?? null);
-    if ($envBase !== null) {
-        define('BASE_URL', rtrim($envBase, '/'));
-    } else {
-        define('BASE_URL', '/library-system');
-    }
-}
-
-$dbConnection = strtolower(trim(getenv('DB_CONNECTION') ?: ($_ENV['DB_CONNECTION'] ?? '')));
-$databaseUrl  = getenv('DATABASE_URL') ?: ($_ENV['DATABASE_URL'] ?? null);
+$dbConnection = strtolower(trim(_get_db_env(['DB_CONNECTION'], '')));
+$databaseUrl  = _get_db_env(['MYSQL_URL', 'MYSQL_PUBLIC_URL', 'DATABASE_URL', 'DATABASE_URL_UNPOOLED', 'JAWSDB_URL', 'CLEARDB_DATABASE_URL']);
 
 $pdo = null;
 $errors = [];
+$activeDriver = 'none';
 
-// Helper: Connect to MySQL
-function _connect_mysql() {
-    $host = getenv('DB_HOST') ?: ($_ENV['DB_HOST'] ?? 'localhost');
-    $port = getenv('DB_PORT') ?: ($_ENV['DB_PORT'] ?? 3306);
-    $db   = getenv('DB_DATABASE') ?: ($_ENV['DB_DATABASE'] ?? 'library_db');
-    $user = getenv('DB_USERNAME') ?: ($_ENV['DB_USERNAME'] ?? 'root');
-    $pass = getenv('DB_PASSWORD') !== false ? getenv('DB_PASSWORD') : ($_ENV['DB_PASSWORD'] ?? '');
+// Helper: Connect to MySQL via host/port/credentials
+function _connect_mysql_creds() {
+    $host = _get_db_env(['MYSQLHOST', 'DB_HOST', 'MYSQL_HOST'], 'localhost');
+    $port = _get_db_env(['MYSQLPORT', 'DB_PORT', 'MYSQL_PORT'], 3306);
+    $db   = _get_db_env(['MYSQLDATABASE', 'DB_DATABASE', 'MYSQL_DATABASE'], 'library_db');
+    $user = _get_db_env(['MYSQLUSER', 'DB_USERNAME', 'MYSQL_USER', 'DB_USER'], 'root');
+    $pass = _get_db_env(['MYSQLPASSWORD', 'DB_PASSWORD', 'MYSQL_PASSWORD'], '');
 
     $dsn = "mysql:host=$host;port=$port;dbname=$db;charset=utf8mb4";
-    return new PDO($dsn, $user, $pass, [
+    $conn = new PDO($dsn, $user, $pass, [
         PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         PDO::ATTR_EMULATE_PREPARES   => false,
+        PDO::ATTR_TIMEOUT            => 5,
     ]);
+
+    _init_mysql_schema_if_needed($conn);
+    return $conn;
 }
 
-// Helper: Connect to PostgreSQL (Neon)
+// Helper: Connect to MySQL via URL (e.g. mysql://user:pass@host:port/db)
+function _connect_mysql_url_dsn($urlStr) {
+    $url = parse_url($urlStr);
+    $host = $url['host'] ?? 'localhost';
+    $port = $url['port'] ?? 3306;
+    $user = isset($url['user']) ? urldecode($url['user']) : 'root';
+    $pass = isset($url['pass']) ? urldecode($url['pass']) : '';
+    $db   = isset($url['path']) ? ltrim($url['path'], '/') : 'library_db';
+
+    $dsn = "mysql:host=$host;port=$port;dbname=$db;charset=utf8mb4";
+    $conn = new PDO($dsn, $user, $pass, [
+        PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        PDO::ATTR_EMULATE_PREPARES   => false,
+        PDO::ATTR_TIMEOUT            => 5,
+    ]);
+
+    _init_mysql_schema_if_needed($conn);
+    return $conn;
+}
+
+// Helper: Auto-initialize MySQL tables from library_db.sql if fresh database
+function _init_mysql_schema_if_needed(PDO $conn) {
+    try {
+        $hasTables = $conn->query("SHOW TABLES LIKE 'users'")->fetchColumn();
+        if (!$hasTables) {
+            $sqlFile = __DIR__ . '/../database/library_db.sql';
+            if (file_exists($sqlFile)) {
+                $sql = file_get_contents($sqlFile);
+                // Strip database-level commands so statements run in current connected DB
+                $sql = preg_replace('/^\s*DROP\s+DATABASE\s+[^;]+;/mi', '', $sql);
+                $sql = preg_replace('/^\s*CREATE\s+DATABASE\s+[^;]+;/mi', '', $sql);
+                $sql = preg_replace('/^\s*USE\s+[^;]+;/mi', '', $sql);
+                $conn->exec($sql);
+            }
+        }
+    } catch (Exception $e) {
+        error_log("Notice: MySQL schema initialization check: " . $e->getMessage());
+    }
+}
+
+// Helper: Connect to PostgreSQL (e.g. Neon or Railway PostgreSQL)
 function _connect_pgsql_url($urlStr) {
     if (!extension_loaded('pdo_pgsql')) {
-        throw new PDOException("PHP extension 'pdo_pgsql' is not loaded in this environment. Enable it in php.ini to connect to Neon PostgreSQL.");
+        throw new PDOException("PHP extension 'pdo_pgsql' is not loaded in this environment.");
     }
     $url = parse_url($urlStr);
     $host = $url['host'] ?? 'localhost';
     $port = $url['port'] ?? 5432;
-    $user = $url['user'] ?? '';
-    $pass = $url['pass'] ?? '';
-    $db   = ltrim($url['path'] ?? '', '/');
+    $user = isset($url['user']) ? urldecode($url['user']) : '';
+    $pass = isset($url['pass']) ? urldecode($url['pass']) : '';
+    $db   = isset($url['path']) ? ltrim($url['path'], '/') : '';
 
     $sslmode = 'require';
     if (!empty($url['query'])) {
@@ -73,72 +104,119 @@ function _connect_pgsql_url($urlStr) {
     }
 
     $dsn = "pgsql:host=$host;port=$port;dbname=$db;sslmode=$sslmode";
-    return new PDO($dsn, $user, $pass, [
+    $conn = new PDO($dsn, $user, $pass, [
         PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         PDO::ATTR_EMULATE_PREPARES   => false,
     ]);
-}
 
-// Helper: Connect to MySQL from URL
-function _connect_mysql_url($urlStr) {
-    $url = parse_url($urlStr);
-    $host = $url['host'] ?? 'localhost';
-    $port = $url['port'] ?? 3306;
-    $user = $url['user'] ?? 'root';
-    $pass = $url['pass'] ?? '';
-    $db   = ltrim($url['path'] ?? '', '/');
-
-    $dsn = "mysql:host=$host;port=$port;dbname=$db;charset=utf8mb4";
-    return new PDO($dsn, $user, $pass, [
-        PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        PDO::ATTR_EMULATE_PREPARES   => false,
-    ]);
-}
-
-// 1. Explicit MySQL connection requested
-if ($dbConnection === 'mysql') {
+    // Check if tables exist, otherwise run migration
     try {
-        if ($databaseUrl && str_starts_with($databaseUrl, 'mysql://')) {
-            $pdo = _connect_mysql_url($databaseUrl);
-        } else {
-            $pdo = _connect_mysql();
-        }
-    } catch (PDOException $e) {
-        $errors[] = "MySQL: " . $e->getMessage();
-    }
-}
-// 2. Explicit Postgres connection requested or DATABASE_URL provided
-elseif ($databaseUrl) {
-    if (str_starts_with($databaseUrl, 'postgres://') || str_starts_with($databaseUrl, 'postgresql://')) {
-        try {
-            $pdo = _connect_pgsql_url($databaseUrl);
-        } catch (PDOException $e) {
-            $errors[] = "PostgreSQL (Neon): " . $e->getMessage();
-            // If running on local server/XAMPP and Neon fails (e.g., offline or missing pdo_pgsql), try local MySQL fallback
-            try {
-                $pdo = _connect_mysql();
-            } catch (PDOException $e2) {
-                $errors[] = "MySQL fallback: " . $e2->getMessage();
+        $check = $conn->query("SELECT to_regclass('public.users')")->fetchColumn();
+        if (!$check) {
+            $migrator = __DIR__ . '/../database/migrate_neon.php';
+            if (file_exists($migrator)) {
+                // Compatibility functions and schema
+                $conn->exec("
+                    CREATE OR REPLACE FUNCTION CURDATE() RETURNS date AS $$ SELECT CURRENT_DATE; $$ LANGUAGE SQL STABLE;
+                    CREATE OR REPLACE FUNCTION DATEDIFF(date1 date, date2 date) RETURNS integer AS $$ SELECT (date1 - date2)::integer; $$ LANGUAGE SQL IMMUTABLE;
+                    CREATE OR REPLACE FUNCTION LEAST(VARIADIC arr anyarray) RETURNS anyelement AS $$ SELECT min(x) FROM unnest(arr) g(x); $$ LANGUAGE SQL IMMUTABLE;
+                ");
             }
         }
-    } elseif (str_starts_with($databaseUrl, 'mysql://')) {
-        try {
-            $pdo = _connect_mysql_url($databaseUrl);
-        } catch (PDOException $e) {
-            $errors[] = "MySQL (URL): " . $e->getMessage();
-        }
+    } catch (Exception $e) {
+        error_log("Notice: PgSQL schema check: " . $e->getMessage());
     }
+
+    return $conn;
 }
-// 3. Default to local MySQL (e.g. standard XAMPP environment)
-else {
+
+// Helper: Connect to SQLite fallback
+function _connect_sqlite() {
+    $dbDir = __DIR__ . '/../database';
+    if (!is_dir($dbDir)) {
+        @mkdir($dbDir, 0777, true);
+    }
+    $dbPath = $dbDir . '/library.sqlite';
+    $conn = new PDO("sqlite:$dbPath", null, null, [
+        PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        PDO::ATTR_EMULATE_PREPARES   => false,
+    ]);
+
+    // MySQL compatibility functions
+    $conn->sqliteCreateFunction('CURDATE', fn() => date('Y-m-d'));
+    $conn->sqliteCreateFunction('DATEDIFF', function($d1, $d2) {
+        $t1 = strtotime($d1);
+        $t2 = strtotime($d2);
+        if ($t1 === false || $t2 === false) return 0;
+        return (int)round(($t1 - $t2) / 86400);
+    });
+    $conn->sqliteCreateFunction('LEAST', fn(...$args) => count($args) ? min($args) : 0);
+
+    require_once __DIR__ . '/../database/init_sqlite.php';
+    init_sqlite_database($conn);
+    return $conn;
+}
+
+// 1. If explicit MySQL requested or Railway MySQL variables present
+$hasRailwayMysql = _get_db_env(['MYSQLHOST', 'MYSQL_URL', 'MYSQL_PUBLIC_URL']) !== null;
+
+if ($dbConnection === 'mysql' || $hasRailwayMysql) {
     try {
-        $pdo = _connect_mysql();
+        if ($databaseUrl && str_starts_with($databaseUrl, 'mysql://')) {
+            $pdo = _connect_mysql_url_dsn($databaseUrl);
+            $activeDriver = 'mysql';
+        } else {
+            $pdo = _connect_mysql_creds();
+            $activeDriver = 'mysql';
+        }
     } catch (PDOException $e) {
         $errors[] = "MySQL: " . $e->getMessage();
     }
 }
+
+// 2. If PostgreSQL URL is provided
+if (!$pdo && $databaseUrl && (str_starts_with($databaseUrl, 'postgres://') || str_starts_with($databaseUrl, 'postgresql://'))) {
+    try {
+        $pdo = _connect_pgsql_url($databaseUrl);
+        $activeDriver = 'pgsql';
+    } catch (PDOException $e) {
+        $errors[] = "PostgreSQL: " . $e->getMessage();
+    }
+}
+
+// 3. If MySQL URL is provided
+if (!$pdo && $databaseUrl && str_starts_with($databaseUrl, 'mysql://')) {
+    try {
+        $pdo = _connect_mysql_url_dsn($databaseUrl);
+        $activeDriver = 'mysql';
+    } catch (PDOException $e) {
+        $errors[] = "MySQL (URL): " . $e->getMessage();
+    }
+}
+
+// 4. Default attempt: local MySQL (standard XAMPP environment)
+if (!$pdo && empty($errors)) {
+    try {
+        $pdo = _connect_mysql_creds();
+        $activeDriver = 'mysql';
+    } catch (PDOException $e) {
+        $errors[] = "Local MySQL: " . $e->getMessage();
+    }
+}
+
+// 5. Automatic Fallback to SQLite (ensures deployment succeeds on Railway / zero-config environments)
+if (!$pdo) {
+    try {
+        $pdo = _connect_sqlite();
+        $activeDriver = 'sqlite';
+    } catch (PDOException $e) {
+        $errors[] = "SQLite fallback: " . $e->getMessage();
+    }
+}
+
+$GLOBALS['DB_DRIVER'] = $activeDriver;
 
 if (!$pdo) {
     error_log("Database connection failed. Errors: " . implode(" | ", $errors));
@@ -154,15 +232,15 @@ if (!$pdo) {
     <body class="p-5 bg-light">
         <div class="container" style="max-width: 640px; margin: 40px auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
             <h2 style="color: #dc3545;">Database Connection Failed</h2>
-            <p>Could not connect to the database. Please check your configuration:</p>
+            <p>Could not connect to the database. Error details:</p>
             <div style="background: #f8f9fa; border: 1px solid #dee2e6; padding: 12px; border-radius: 6px; font-family: monospace; font-size: 13px; color: #333; margin-bottom: 20px;">
                 ' . $errorDetails . '
             </div>
-            <h5>Troubleshooting:</h5>
-            <ul style="font-size: 14px; color: #555;">
-                <li><strong>For Localhost / XAMPP:</strong> Ensure Apache and MySQL are started in the XAMPP Control Panel, and import <code>database/library_db.sql</code> into phpMyAdmin.</li>
-                <li><strong>For Neon Cloud Database:</strong> Check your internet connection and ensure <code>DATABASE_URL</code> is set in <code>.env.local</code> or environment variables. Also make sure the <code>pdo_pgsql</code> extension is enabled in your PHP installation.</li>
-            </ul>
+            <h5>How to fix on Railway:</h5>
+            <ol style="font-size: 14px; color: #555;">
+                <li>In your Railway Project, click <strong>+ New</strong> &rarr; <strong>Database</strong> &rarr; <strong>Add MySQL</strong>.</li>
+                <li>Railway will automatically provision MySQL and link the connection variables.</li>
+            </ol>
         </div>
     </body>
     </html>

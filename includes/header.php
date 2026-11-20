@@ -1,7 +1,7 @@
 <?php
 if (session_status() === PHP_SESSION_NONE) session_start();
 if (!defined('BASE_URL')) {
-    if (!defined('BASE_URL')) define('BASE_URL', '/library-system');
+    require_once __DIR__ . '/../config/bootstrap.php';
 }
 ?>
 <!DOCTYPE html>
