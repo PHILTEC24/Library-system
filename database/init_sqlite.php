@@ -34,7 +34,9 @@ function init_sqlite_database(PDO $pdo) {
         publisher TEXT,
         year_published INTEGER,
         total_copies INTEGER NOT NULL DEFAULT 1,
-        available_copies INTEGER NOT NULL DEFAULT 1
+        available_copies INTEGER NOT NULL DEFAULT 1,
+        cover_image TEXT NULL,
+        ebook_file TEXT NULL
     );
 
     CREATE TABLE IF NOT EXISTS book_authors (

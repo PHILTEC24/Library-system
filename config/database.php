@@ -218,6 +218,39 @@ if (!$pdo) {
 
 $GLOBALS['DB_DRIVER'] = $activeDriver;
 
+if ($pdo) {
+    // Ensure book media columns exist regardless of database engine
+    try {
+        if ($activeDriver === 'sqlite') {
+            $cols = $pdo->query("PRAGMA table_info(books)")->fetchAll(PDO::FETCH_ASSOC);
+            $names = array_column($cols, 'name');
+            if (!in_array('cover_image', $names)) {
+                $pdo->exec("ALTER TABLE books ADD COLUMN cover_image TEXT NULL");
+            }
+            if (!in_array('ebook_file', $names)) {
+                $pdo->exec("ALTER TABLE books ADD COLUMN ebook_file TEXT NULL");
+            }
+        } elseif ($activeDriver === 'pgsql') {
+            $pdo->exec("
+                ALTER TABLE books ADD COLUMN IF NOT EXISTS cover_image VARCHAR(100) NULL;
+                ALTER TABLE books ADD COLUMN IF NOT EXISTS ebook_file VARCHAR(100) NULL;
+            ");
+        } else {
+            // MySQL
+            $cols = $pdo->query("SHOW COLUMNS FROM books LIKE 'cover_image'")->fetch();
+            if (!$cols) {
+                $pdo->exec("ALTER TABLE books ADD COLUMN cover_image VARCHAR(100) NULL");
+            }
+            $cols2 = $pdo->query("SHOW COLUMNS FROM books LIKE 'ebook_file'")->fetch();
+            if (!$cols2) {
+                $pdo->exec("ALTER TABLE books ADD COLUMN ebook_file VARCHAR(100) NULL");
+            }
+        }
+    } catch (Exception $e) {
+        error_log("Notice: book media column check: " . $e->getMessage());
+    }
+}
+
 if (!$pdo) {
     error_log("Database connection failed. Errors: " . implode(" | ", $errors));
     $errorDetails = implode('<br>', array_map('htmlspecialchars', $errors));

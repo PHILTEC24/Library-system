@@ -19,18 +19,11 @@ $totalMembers       = (int)$pdo->query('SELECT COUNT(*) FROM members')->fetchCol
 $activeMembers      = (int)$pdo->query("SELECT COUNT(*) FROM members WHERE status = 'active'")->fetchColumn();
 $suspendedMembers   = (int)$pdo->query("SELECT COUNT(*) FROM members WHERE status = 'suspended'")->fetchColumn();
 $activeLoans        = (int)$pdo->query("SELECT COUNT(*) FROM loans WHERE date_returned IS NULL")->fetchColumn();
-<<<<<<< HEAD
 $todayStr           = date('Y-m-d');
 $nextWeekStr        = date('Y-m-d', strtotime('+7 days'));
 $stmtDue            = $pdo->prepare("SELECT COUNT(*) FROM loans WHERE date_returned IS NULL AND due_date BETWEEN ? AND ?");
 $stmtDue->execute([$todayStr, $nextWeekStr]);
 $dueThisWeek        = (int)$stmtDue->fetchColumn();
-=======
-$dateInSevenDays = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'pgsql'
-    ? "(CURRENT_DATE + INTERVAL '7 days')"
-    : 'DATE_ADD(CURDATE(), INTERVAL 7 DAY)';
-$dueThisWeek        = (int)$pdo->query("SELECT COUNT(*) FROM loans WHERE date_returned IS NULL AND due_date BETWEEN CURDATE() AND $dateInSevenDays")->fetchColumn();
->>>>>>> 0eab522 (feat: add support for book cover images and digital e-books, including upload and management functionality)
 $overdueLoans       = (int)$pdo->query("SELECT COUNT(*) FROM loans WHERE date_returned IS NULL AND due_date < CURDATE()")->fetchColumn();
 $oldestOverdueDays  = (int)$pdo->query("SELECT COALESCE(MAX(DATEDIFF(CURDATE(), due_date)), 0) FROM loans WHERE date_returned IS NULL AND due_date < CURDATE()")->fetchColumn();
 

@@ -13,10 +13,14 @@ $subFilter = intval($_GET['subcategory'] ?? 0);
 $totalTitles = (int)$pdo->query('SELECT COUNT(*) FROM books')->fetchColumn();
 $totalCopies = (int)$pdo->query('SELECT COALESCE(SUM(total_copies), 0) FROM books')->fetchColumn();
 
-$isPgsql = ($pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'pgsql');
-$authorAgg = $isPgsql
-    ? "COALESCE((SELECT STRING_AGG(a2.name, ', ' ORDER BY (ba2.author_role='primary') DESC, a2.name) FROM book_authors ba2 JOIN authors a2 ON ba2.author_id = a2.author_id WHERE ba2.book_id = b.book_id), '') AS author_name,"
-    : "GROUP_CONCAT(DISTINCT a.name ORDER BY (ba.author_role='primary') DESC, a.name SEPARATOR ', ') AS author_name,";
+$driverName = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+if ($driverName === 'pgsql') {
+    $authorAgg = "COALESCE((SELECT STRING_AGG(a2.name, ', ' ORDER BY (ba2.author_role='primary') DESC, a2.name) FROM book_authors ba2 JOIN authors a2 ON ba2.author_id = a2.author_id WHERE ba2.book_id = b.book_id), '') AS author_name,";
+} elseif ($driverName === 'sqlite') {
+    $authorAgg = "COALESCE((SELECT GROUP_CONCAT(a2.name, ', ') FROM book_authors ba2 JOIN authors a2 ON ba2.author_id = a2.author_id WHERE ba2.book_id = b.book_id), '') AS author_name,";
+} else {
+    $authorAgg = "GROUP_CONCAT(DISTINCT a.name ORDER BY (ba.author_role='primary') DESC, a.name SEPARATOR ', ') AS author_name,";
+}
 
 $params = [];
 $sql = "SELECT b.book_id AS id, b.isbn, b.title, b.publisher, b.year_published,
