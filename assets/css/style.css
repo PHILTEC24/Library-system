@@ -142,15 +142,125 @@
   --lms-line-light: rgba(255, 255, 255, 0.04);
 
   --lms-text: #F8FAFC;
-  --lms-text-secondary: #CBD5E1;
-  --lms-muted: #64748B;
-  --lms-muted-light: #475569;
+  --lms-text-secondary: #E2E8F0;
+  --lms-muted: #94A3B8;
+  --lms-muted-light: #CBD5E1;
 
   --lms-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
   --lms-shadow-card: 0 2px 8px rgba(0, 0, 0, 0.4);
   --lms-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
   --lms-shadow-lg: 0 10px 24px rgba(0, 0, 0, 0.6);
   --lms-shadow-hover: 0 8px 24px rgba(16, 185, 129, 0.15);
+}
+
+/* Dark Mode Comprehensive Overrides (Ensures full contrast across Bootstrap components) */
+[data-theme="dark"] .text-dark {
+  color: #F8FAFC !important;
+}
+
+[data-theme="dark"] .text-muted {
+  color: #94A3B8 !important;
+}
+
+[data-theme="dark"] .text-secondary {
+  color: #CBD5E1 !important;
+}
+
+[data-theme="dark"] .bg-light,
+[data-theme="dark"] .badge.bg-light {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  color: #CBD5E1 !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+[data-theme="dark"] .badge.text-secondary {
+  color: #CBD5E1 !important;
+}
+
+[data-theme="dark"] .badge.text-dark {
+  color: #F8FAFC !important;
+}
+
+[data-theme="dark"] .border-light-subtle {
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-theme="dark"] .lms-btn-icon {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #CBD5E1;
+}
+
+[data-theme="dark"] .lms-btn-icon:hover {
+  background-color: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.35);
+  color: #10B981;
+}
+
+[data-theme="dark"] .lms-btn-icon--danger {
+  color: #FCA5A5;
+}
+
+[data-theme="dark"] .lms-btn-icon--danger:hover {
+  background-color: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.35);
+  color: #F87171;
+}
+
+[data-theme="dark"] .lms-topbar__search-input {
+  background-color: #0A0D14;
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #F8FAFC;
+}
+
+[data-theme="dark"] .lms-topbar__search-input::placeholder {
+  color: #64748B;
+}
+
+[data-theme="dark"] .lms-topbar__search-input:focus {
+  background-color: #131823;
+  border-color: #10B981;
+  color: #F8FAFC;
+}
+
+[data-theme="dark"] .lms-breadcrumb a {
+  color: #94A3B8;
+}
+
+[data-theme="dark"] .lms-breadcrumb a:hover {
+  color: #10B981;
+}
+
+[data-theme="dark"] .lms-breadcrumb__current {
+  color: #F8FAFC;
+  font-weight: 600;
+}
+
+/* Custom dark scrollbars — eliminates glaring white Windows scrollbars */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.25);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.4);
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.16);
+}
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+[data-theme="dark"] {
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+  scrollbar-width: thin;
 }
 
 /* ==========================================================================

@@ -19,6 +19,7 @@ if (!defined('BASE_URL')) {
                 const saved = localStorage.getItem('lms-theme');
                 const theme = saved || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
                 document.documentElement.setAttribute('data-theme', theme);
+                document.documentElement.setAttribute('data-bs-theme', theme);
             } catch (e) {}
         })();
     </script>

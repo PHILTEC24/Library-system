@@ -277,6 +277,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function applyTheme(theme) {
     root.setAttribute('data-theme', theme);
+    root.setAttribute('data-bs-theme', theme);
     localStorage.setItem(DARK_KEY, theme);
   }
 
