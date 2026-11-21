@@ -211,3 +211,4 @@ $renderNavItems = function () use ($currentPage, $overdueNavCount) {
 
     <!-- Main Content Landmark -->
     <main id="main" class="lms-content-container">
+        <?php displayFlash(); ?>

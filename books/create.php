@@ -56,6 +56,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($subcategory_id <= 0) {
         $errors['subcategory_id'] = 'Please select a valid subcategory for this book.';
+    } elseif ($category_id > 0) {
+        $subOwner = $pdo->prepare('SELECT category_id FROM sub_categories WHERE sub_category_id = ?');
+        $subOwner->execute([$subcategory_id]);
+        if ((int)$subOwner->fetchColumn() !== $category_id) {
+            $errors['subcategory_id'] = 'The selected subcategory does not belong to the selected category.';
+        }
     }
 
     if ($year_published !== '') {
@@ -98,7 +104,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $baStmt->execute([$newBookId, $author_id]);
             }
             $pdo->commit();
-            setFlash('success', 'Book "' . htmlspecialchars($title) . '" added successfully.');
+            setFlash('success', 'Book "' . $title . '" added successfully.');
             header('Location: ' . BASE_URL . '/books/index.php');
             exit;
         } catch (Exception $e) {
@@ -137,6 +143,7 @@ require_once __DIR__ . '/../includes/navbar.php';
 <?php endif; ?>
 
 <form method="POST" action="" enctype="multipart/form-data" class="lms-book-form" novalidate>
+    <?= csrf_field() ?>
     <div class="row g-4">
         <!-- Left Column: Form Cards (8 of 12) -->
         <div class="col-lg-8">
@@ -302,20 +309,20 @@ require_once __DIR__ . '/../includes/navbar.php';
         <!-- Right Column: Live Spine Preview (4 of 12) -->
         <div class="col-lg-4">
             <div class="lms-book-preview-card">
-                <p class="text-muted small fw-semibold text-uppercase tracking-wider mb-3">
-                    <i class="bi bi-eye me-1 text-primary"></i> Live spine preview
+                <p class="lms-eyebrow mb-3">
+                    <i class="bi bi-eye me-1"></i> Live spine preview
                 </p>
                 <div class="lms-book-preview-card__spine-wrap">
-                    <span id="previewSpine" class="lms-spine lms-spine--lg" style="--spine: #3F5BA9;" aria-hidden="true">?</span>
+                    <?= spine_tile($old['title'] ?? '', (int)($old['category_id'] ?? 0), 'lg') ?>
                 </div>
-                <div id="previewTitle" class="lms-book-preview-card__title">Untitled Book</div>
+                <div id="previewTitle" class="lms-book-preview-card__title">Untitled book</div>
                 <div id="previewAuthor" class="lms-book-preview-card__author">No author selected</div>
 
-                <div class="mt-3 pt-3 border-top border-light-subtle">
-                    <div class="text-muted small mb-2">Available copies preview:</div>
-                    <div id="previewPips" class="lms-pips justify-content-center">
+                <div class="lms-book-preview-card__copies">
+                    <div id="previewPips" class="lms-pips" data-on-loan="0">
                         <span class="lms-pip is-filled"></span>
                     </div>
+                    <div id="previewPipsLabel" class="lms-book-preview-card__copies-label">1 of 1 copy available</div>
                 </div>
             </div>
         </div>

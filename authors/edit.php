@@ -42,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($errors)) {
         $stmt = $pdo->prepare("UPDATE authors SET name = ?, country = ? WHERE author_id = ?");
         $stmt->execute([$name, $country !== '' ? $country : null, $id]);
-        setFlash('success', 'Author "' . e($name) . '" updated successfully.');
+        setFlash('success', 'Author "' . $name . '" updated successfully.');
         redirect(BASE_URL . '/authors/index.php');
     }
 }
@@ -85,6 +85,7 @@ require_once __DIR__ . '/../includes/navbar.php';
             </div>
             <div class="card-body p-4">
                 <form method="POST" action="" novalidate>
+                    <?= csrf_field() ?>
                     <div class="mb-3">
                         <label for="name" class="form-label fw-semibold text-dark">
                             Author Name <span class="text-danger">*</span>

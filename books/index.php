@@ -113,7 +113,7 @@ require_once __DIR__ . '/../includes/navbar.php';
                                value="<?= e($search) ?>" aria-label="Search books">
                     </div>
 
-                    <select name="category" class="form-select lms-filter-select" onchange="this.form.submit()" aria-label="Filter by category">
+                    <select name="category" class="form-select lms-filter-select" aria-label="Filter by category">
                         <option value="">All categories</option>
                         <?php foreach ($categories as $cat): ?>
                             <option value="<?= $cat['id'] ?>" <?= $catFilter == $cat['id'] ? 'selected' : '' ?>>
@@ -122,7 +122,7 @@ require_once __DIR__ . '/../includes/navbar.php';
                         <?php endforeach; ?>
                     </select>
 
-                    <select name="subcategory" class="form-select lms-filter-select" onchange="this.form.submit()" aria-label="Filter by subcategory">
+                    <select name="subcategory" class="form-select lms-filter-select" aria-label="Filter by subcategory">
                         <option value="">All subcategories</option>
                         <?php foreach ($subcategories as $sub): ?>
                             <?php if ($catFilter > 0 && $sub['category_id'] != $catFilter) continue; ?>
@@ -226,12 +226,12 @@ require_once __DIR__ . '/../includes/navbar.php';
                     ?>
                     <tr>
                         <!-- 1. Book (Spine + Title + Author) -->
-                        <td class="lms-td-primary">
+                        <td class="lms-td-primary" data-label="Book">
                             <div class="d-flex align-items-center gap-3">
                                 <?php if (!empty($book['cover_image'])): ?>
                                     <img src="<?= BASE_URL ?>/books/media.php?id=<?= (int)$book['id'] ?>&amp;type=cover"
                                          alt="Cover of <?= e($book['title']) ?>"
-                                         style="width: 48px; height: 64px; object-fit: cover; border-radius: .25rem;">
+                                         class="lms-cover-thumb">
                                 <?php else: ?>
                                     <?= spine_tile($book['title'], $catId, 'md') ?>
                                 <?php endif; ?>
@@ -240,14 +240,14 @@ require_once __DIR__ . '/../includes/navbar.php';
                                         <?= e($book['title']) ?>
                                     </div>
                                     <div class="text-muted small text-truncate">
-                                        <?= e($book['author_name'] ?? 'Unknown author') ?>
+                                        <?= e(($book['author_name'] ?? '') !== '' ? $book['author_name'] : 'Unknown author') ?>
                                     </div>
                                 </div>
                             </div>
                         </td>
 
                         <!-- 2. ISBN -->
-                        <td class="d-none d-lg-table-cell lms-tabular" data-label="ISBN">
+                        <td class="d-none d-lg-table-cell lms-tabular text-nowrap" data-label="ISBN">
                             <span class="text-muted"><?= e($book['isbn']) ?></span>
                         </td>
 
@@ -261,7 +261,7 @@ require_once __DIR__ . '/../includes/navbar.php';
                             </div>
                             <?php if (!empty($book['subcategory_name'])): ?>
                                 <div class="text-muted small ps-3">
-                                    &rdquor; <?= e($book['subcategory_name']) ?>
+                                    &rsaquo; <?= e($book['subcategory_name']) ?>
                                 </div>
                             <?php endif; ?>
                         </td>
@@ -304,8 +304,8 @@ require_once __DIR__ . '/../includes/navbar.php';
                                        data-confirm-title="Delete this book?"
                                        data-confirm-message="&quot;<?= e($book['title']) ?>&quot; will be permanently deleted from the catalogue."
                                        data-confirm-button="Delete book"
-                                       data-confirm-style="danger"
-                                       onclick="return confirm('Delete this book?');">
+                                       data-confirm-style="danger" data-method="post"
+>
                                         <i class="bi bi-trash"></i>
                                     </a>
                                 <?php endif; ?>
@@ -367,8 +367,8 @@ require_once __DIR__ . '/../includes/navbar.php';
                         <?= e($book['title']) ?>
                     </h3>
 
-                    <div class="lms-book-card__author" title="<?= e($book['author_name'] ?? 'Unknown author') ?>">
-                        <i class="bi bi-person me-1"></i><?= e($book['author_name'] ?? 'Unknown author') ?>
+                    <div class="lms-book-card__author" title="<?= e(($book['author_name'] ?? '') !== '' ? $book['author_name'] : 'Unknown author') ?>">
+                        <i class="bi bi-person me-1"></i><?= e(($book['author_name'] ?? '') !== '' ? $book['author_name'] : 'Unknown author') ?>
                     </div>
 
                     <div class="lms-book-card__avail">
@@ -401,8 +401,8 @@ require_once __DIR__ . '/../includes/navbar.php';
                                data-confirm-title="Delete this book?"
                                data-confirm-message="&quot;<?= e($book['title']) ?>&quot; will be permanently deleted from the catalogue."
                                data-confirm-button="Delete book"
-                               data-confirm-style="danger"
-                               onclick="return confirm('Delete this book?');">
+                               data-confirm-style="danger" data-method="post"
+>
                                 <i class="bi bi-trash"></i>
                             </a>
                         <?php endif; ?>

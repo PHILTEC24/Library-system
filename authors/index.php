@@ -41,7 +41,6 @@ require_once __DIR__ . '/../includes/navbar.php';
     '</a>'
 ) ?>
 
-<?php displayFlash(); ?>
 
 <!-- Table & Filter Card -->
 <div class="lms-table-card mb-4">
@@ -135,7 +134,7 @@ require_once __DIR__ . '/../includes/navbar.php';
                             <?php endif; ?>
                         </td>
                         <td data-label="Books">
-                            <span class="badge rounded-pill bg-light text-secondary border px-3 py-1">
+                            <span class="lms-count-badge">
                                 <?= pluralize((int)$author['book_count'], 'book', 'books') ?>
                             </span>
                         </td>
@@ -151,7 +150,7 @@ require_once __DIR__ . '/../includes/navbar.php';
                                    data-confirm-title="Delete Author?"
                                    data-confirm-message="Author '<?= e($author['name']) ?>' will be removed. Books linked to this author will remain in the catalogue."
                                    data-confirm-button="Delete author"
-                                   data-confirm-style="danger"
+                                   data-confirm-style="danger" data-method="post"
                                    title="Delete author" aria-label="Delete author <?= e($author['name']) ?>">
                                     <i class="bi bi-trash"></i>
                                 </a>

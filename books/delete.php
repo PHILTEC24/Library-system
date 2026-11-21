@@ -5,6 +5,9 @@ require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../includes/book_media.php';
 
+require_post(BASE_URL . '/books/index.php');
+require_admin(BASE_URL . '/books/index.php');
+
 $id = intval($_GET['id'] ?? 0);
 if ($id <= 0) {
     setFlash('danger', 'Invalid book ID.');
@@ -31,7 +34,7 @@ $activeCheck->execute([$id]);
 $activeCount = $activeCheck->fetchColumn();
 
 if ($activeCount > 0) {
-    setFlash('danger', 'Cannot delete "' . htmlspecialchars($book['title']) . '" — it has ' . $activeCount . ' active loan(s). Return the book(s) first.');
+    setFlash('danger', 'Cannot delete "' . $book['title'] . '" — it has ' . $activeCount . ' active loan(s). Return the book(s) first.');
     header('Location: ' . BASE_URL . '/books/index.php');
     exit;
 }
@@ -40,7 +43,7 @@ if ($activeCount > 0) {
 $historyCheck = $pdo->prepare('SELECT COUNT(*) FROM loans WHERE book_id = ?');
 $historyCheck->execute([$id]);
 if ($historyCheck->fetchColumn() > 0) {
-    setFlash('danger', 'Cannot delete "' . htmlspecialchars($book['title']) . '" — it has associated loan records in library history.');
+    setFlash('danger', 'Cannot delete "' . $book['title'] . '" — it has associated loan records in library history.');
     header('Location: ' . BASE_URL . '/books/index.php');
     exit;
 }
@@ -51,6 +54,6 @@ $del->execute([$id]);
 delete_book_media_upload($book['cover_image']);
 delete_book_media_upload($book['ebook_file']);
 
-setFlash('success', 'Book "' . htmlspecialchars($book['title']) . '" deleted successfully.');
+setFlash('success', 'Book "' . $book['title'] . '" deleted successfully.');
 header('Location: ' . BASE_URL . '/books/index.php');
 exit;

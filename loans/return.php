@@ -4,6 +4,8 @@ require_once __DIR__ . '/../includes/auth_check.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/functions.php';
 
+require_post(BASE_URL . '/loans/index.php');
+
 $id = intval($_GET['id'] ?? 0);
 if ($id <= 0) {
     setFlash('danger', 'Invalid loan ID.');
@@ -29,7 +31,7 @@ if (!$loan) {
 }
 
 if ($loan['date_returned'] !== null) {
-    setFlash('warning', 'This book was already marked as returned on ' . e($loan['date_returned']) . '.');
+    setFlash('warning', 'This book was already marked as returned on ' . format_date($loan['date_returned']) . '.');
     redirect(BASE_URL . '/loans/index.php');
 }
 
@@ -39,7 +41,7 @@ $dueDate    = $loan['due_date'];
 $fineMessage = '';
 
 if ($returnDate > $dueDate) {
-    $diffDays = (int)ceil((strtotime($returnDate) - strtotime($dueDate)) / (60 * 60 * 24));
+    $diffDays = (int)(new DateTime($dueDate))->diff(new DateTime($returnDate))->format('%r%a');
     if ($diffDays > 0) {
         $finePercent = $diffDays * 5; // 5% of the book price for each delayed day
         $fineMessage = ' (Book was ' . $diffDays . ' day(s) overdue. Late fine: ' . $finePercent . '% of book price)';
@@ -52,10 +54,15 @@ try {
     $pdo->beginTransaction();
 
     // 1. Mark loan as returned
+    //    Only touches a loan that is still open, so a double-submit can never
+    //    increase the available copies twice.
     $updateLoan = $pdo->prepare(
-        'UPDATE loans SET date_returned = ? WHERE loan_id = ?'
+        'UPDATE loans SET date_returned = ? WHERE loan_id = ? AND date_returned IS NULL'
     );
     $updateLoan->execute([$returnDate, $id]);
+    if ($updateLoan->rowCount() !== 1) {
+        throw new RuntimeException('this loan has already been returned.');
+    }
 
     // 2. Increase available copies by 1 (capped at total_copies)
     $updateBook = $pdo->prepare(
@@ -65,12 +72,12 @@ try {
 
     $pdo->commit();
 
-    setFlash('success', 'Book "' . e($loan['book_title']) . '" returned successfully by ' . e($loan['member_name']) . '.' . $fineMessage);
+    setFlash('success', 'Book "' . $loan['book_title'] . '" returned successfully by ' . $loan['member_name'] . '.' . $fineMessage);
 } catch (Exception $e) {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
     }
-    setFlash('danger', 'Failed to process book return: ' . e($e->getMessage()));
+    setFlash('danger', 'Failed to process book return: ' . $e->getMessage());
 }
 
 redirect(BASE_URL . '/loans/index.php');

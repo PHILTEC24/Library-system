@@ -153,7 +153,7 @@ require_once __DIR__ . '/../includes/navbar.php';
         </div>
         <span class="lms-stat-tile__num"><?= $overdueLoans ?></span>
         <span class="lms-stat-tile__sub">
-            <?= $overdueLoans > 0 ? 'Oldest is ' . $oldestOverdueDays . ' days late' : 'All clear' ?>
+            <?= $overdueLoans > 0 ? 'Oldest is ' . pluralize($oldestOverdueDays, 'day') . ' late' : 'All clear' ?>
         </span>
     </a>
 </div>
@@ -202,9 +202,9 @@ require_once __DIR__ . '/../includes/navbar.php';
 
                                     <!-- Due date & Late info -->
                                     <td data-label="Due" class="text-muted small">
-                                        <div>Due <?= format_date($item['due_date']) ?></div>
+                                        <div class="text-nowrap">Due <?= format_date($item['due_date']) ?></div>
                                         <div class="text-danger fw-semibold">
-                                            <?= (int)$item['days_overdue'] ?> days overdue
+                                            <?= pluralize((int)$item['days_overdue'], 'day') ?> overdue
                                             <span class="badge bg-danger-subtle text-danger ms-1"><?= ((int)$item['days_overdue'] * 5) ?>% of book price</span>
                                         </div>
                                     </td>
@@ -222,10 +222,10 @@ require_once __DIR__ . '/../includes/navbar.php';
                                                class="btn btn-sm btn-secondary"
                                                data-confirm="Return '<?= e($item['title']) ?>' for <?= e($item['full_name']) ?>?"
                                                data-confirm-title="Mark overdue loan as returned?"
-                                               data-confirm-message="Return &quot;<?= e($item['title']) ?>&quot; from <?= e($item['full_name']) ?>. This book is <?= (int)$item['days_overdue'] ?> days overdue (Late fine: <?= ((int)$item['days_overdue'] * 5) ?>% of book price)."
+                                               data-confirm-message="Return &quot;<?= e($item['title']) ?>&quot; from <?= e($item['full_name']) ?>. This book is <?= pluralize((int)$item['days_overdue'], 'day') ?> overdue (late fine: <?= ((int)$item['days_overdue'] * 5) ?>% of book price)."
                                                data-confirm-button="Mark as returned"
-                                               data-confirm-style="primary"
-                                               onclick="return confirm('Return this book?');">
+                                               data-confirm-style="primary" data-method="post"
+>
                                                 Return
                                             </a>
                                         </div>
@@ -266,14 +266,14 @@ require_once __DIR__ . '/../includes/navbar.php';
                                     <td class="lms-td-primary" data-label="Book">
                                         <div class="d-flex align-items-center gap-2">
                                             <?= spine_tile($loan['title'], $loan['category_id'] ?? 0, 'sm') ?>
-                                            <span class="fw-medium text-truncate" style="max-width: 180px;" title="<?= e($loan['title']) ?>">
+                                            <span class="fw-medium text-truncate lms-truncate-180" title="<?= e($loan['title']) ?>">
                                                 <?= e($loan['title']) ?>
                                             </span>
                                         </div>
                                     </td>
-                                    <td data-label="Member"><?= e($loan['full_name']) ?></td>
-                                    <td data-label="Issued" class="lms-tabular text-muted"><?= format_date($loan['date_issued']) ?></td>
-                                    <td data-label="Due" class="lms-tabular text-muted"><?= format_date($loan['due_date']) ?></td>
+                                    <td data-label="Member" class="text-nowrap"><?= e($loan['full_name']) ?></td>
+                                    <td data-label="Issued" class="lms-tabular text-muted text-nowrap"><?= format_date($loan['date_issued']) ?></td>
+                                    <td data-label="Due" class="lms-tabular text-muted text-nowrap"><?= format_date($loan['due_date']) ?></td>
                                     <td data-label="Status">
                                         <?php
                                         $s = loan_status($loan);

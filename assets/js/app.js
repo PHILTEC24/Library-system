@@ -1,211 +1,239 @@
 /**
  * LibraryMS - Main Application JavaScript
- * Under 15KB unminified, vanilla JS, zero dependencies except Bootstrap 5.3
+ * Vanilla JS, no dependencies except Bootstrap 5.3.
  */
 
 document.addEventListener('DOMContentLoaded', function () {
   'use strict';
 
-  // Spine Palette (matching PHP helper and CSS tokens)
-  const SPINE_PALETTE = ['#3F5BA9', '#2E7D6B', '#8C4A6B', '#A85A17', '#5A6B3A', '#5E548E'];
+  const hasBootstrap = typeof bootstrap !== 'undefined';
 
-  // =========================================================================
-  // 1. Toast Notification Handler (from PHP flash messages)
-  // =========================================================================
-  const flashHolder = document.querySelector('.lms-flash-holder');
-  const toastContainer = document.getElementById('lms-toast-container');
+  // Spine cloth colours: must match spine_tile() in includes/functions.php,
+  // which maps a category id to lms-spine--cat-((id % 8) + 1).
+  function spineClassFor(categoryId) {
+    return 'lms-spine--cat-' + ((Math.abs(categoryId) % 8) + 1);
+  }
 
-  if (flashHolder && toastContainer && typeof bootstrap !== 'undefined' && bootstrap.Toast) {
-    const flashType = flashHolder.getAttribute('data-flash-type') || 'info';
-    const flashMessage = flashHolder.getAttribute('data-flash-message') || '';
+  function csrfToken() {
+    const meta = document.querySelector('meta[name="csrf-token"]');
+    return meta ? meta.getAttribute('content') : '';
+  }
 
-    if (flashMessage) {
-      const isError = flashType === 'danger' || flashType === 'error';
-      const iconClass = isError ? 'bi-exclamation-octagon-fill text-danger' :
-                        (flashType === 'success' ? 'bi-check-circle-fill text-success' : 'bi-info-circle-fill text-primary');
-      const toastEl = document.createElement('div');
-      toastEl.className = 'toast align-items-center border-0';
-      toastEl.setAttribute('role', isError ? 'alert' : 'status');
-      toastEl.setAttribute('aria-live', isError ? 'assertive' : 'polite');
-      toastEl.setAttribute('aria-atomic', 'true');
-
-      toastEl.innerHTML = `
-        <div class="d-flex p-2">
-          <div class="toast-body d-flex align-items-center gap-2">
-            <i class="bi ${iconClass} fs-5"></i>
-            <span>${flashMessage}</span>
-          </div>
-          <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-        </div>
-      `;
-
-      toastContainer.appendChild(toastEl);
-      const toast = new bootstrap.Toast(toastEl, {
-        autohide: !isError,
-        delay: 5000
-      });
-      toast.show();
-    }
+  // Sends a confirmed destructive action (delete / return) as a POST request.
+  function submitAsPost(url) {
+    const form = document.createElement('form');
+    form.method = 'post';
+    form.action = url;
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = 'csrf_token';
+    input.value = csrfToken();
+    form.appendChild(input);
+    document.body.appendChild(form);
+    form.submit();
   }
 
   // =========================================================================
-  // 2. Universal Confirmation Modal (replaces browser confirm())
+  // 1. Flash messages: auto-dismiss success notices
+  // =========================================================================
+  document.querySelectorAll('.lms-flash.alert-success').forEach(function (alert) {
+    setTimeout(function () {
+      if (hasBootstrap && bootstrap.Alert) {
+        bootstrap.Alert.getOrCreateInstance(alert).close();
+      }
+    }, 6000);
+  });
+
+  // =========================================================================
+  // 2. Universal confirmation modal (replaces browser confirm())
   // =========================================================================
   const confirmModalEl = document.getElementById('lms-confirm-modal');
-  let confirmModalInstance = null;
-  let pendingAction = null;
 
-  if (confirmModalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-    confirmModalInstance = new bootstrap.Modal(confirmModalEl);
+  if (confirmModalEl && hasBootstrap && bootstrap.Modal) {
+    const confirmModal = new bootstrap.Modal(confirmModalEl);
     const modalTitle = document.getElementById('lms-confirm-title');
     const modalBody = document.getElementById('lms-confirm-body');
+    const modalIcon = document.getElementById('lms-confirm-icon');
     const modalBtn = document.getElementById('lms-confirm-btn');
+    let pendingAction = null;
 
     document.addEventListener('click', function (e) {
       const trigger = e.target.closest('[data-confirm], [data-confirm-message]');
       if (!trigger) return;
 
-      // If inside or is a form submit button, intercept
-      const tag = trigger.tagName.toLowerCase();
+      e.preventDefault();
+
       const href = trigger.getAttribute('href');
       const form = trigger.closest('form');
-
-      const title = trigger.getAttribute('data-confirm-title') || 'Confirm Action';
       const msg = trigger.getAttribute('data-confirm-message') || trigger.getAttribute('data-confirm') || 'Are you sure you want to proceed?';
-      const btnText = trigger.getAttribute('data-confirm-button') || 'Confirm';
-      const btnStyle = trigger.getAttribute('data-confirm-style') || (msg.toLowerCase().includes('delete') ? 'danger' : 'primary');
+      const style = trigger.getAttribute('data-confirm-style') || (msg.toLowerCase().includes('delete') ? 'danger' : 'primary');
 
-      e.preventDefault();
-      e.stopPropagation();
-
-      modalTitle.textContent = title;
+      modalTitle.textContent = trigger.getAttribute('data-confirm-title') || 'Confirm action';
       modalBody.textContent = msg;
-      modalBtn.textContent = btnText;
-      modalBtn.className = 'btn btn-' + btnStyle;
+      modalBtn.textContent = trigger.getAttribute('data-confirm-button') || 'Confirm';
+      modalBtn.className = 'btn btn-' + (style === 'danger' ? 'danger' : 'primary');
+      modalIcon.className = 'lms-confirm__icon lms-confirm__icon--' + (style === 'danger' ? 'danger' : 'primary');
+      modalIcon.innerHTML = style === 'danger'
+        ? '<i class="bi bi-trash3"></i>'
+        : '<i class="bi bi-check2-circle"></i>';
 
       pendingAction = function () {
-        if (form && (trigger.type === 'submit' || tag === 'form' || tag === 'button')) {
-          // If trigger was a button, add its name/value before submitting if any
-          if (trigger.name) {
-            const hidden = document.createElement('input');
-            hidden.type = 'hidden';
-            hidden.name = trigger.name;
-            hidden.value = trigger.value;
-            form.appendChild(hidden);
-          }
-          // Remove listener to prevent recursion and submit
-          form.submit();
+        if (trigger.getAttribute('data-method') === 'post' && href) {
+          submitAsPost(href);
+        } else if (form && trigger.tagName === 'BUTTON') {
+          form.requestSubmit ? form.requestSubmit() : form.submit();
         } else if (href && href !== '#') {
           window.location.href = href;
         }
       };
 
-      confirmModalInstance.show();
+      confirmModal.show();
     });
 
-    if (modalBtn) {
-      modalBtn.addEventListener('click', function () {
-        if (typeof pendingAction === 'function') {
-          const action = pendingAction;
-          pendingAction = null;
-          confirmModalInstance.hide();
-          action();
-        }
-      });
-    }
+    confirmModalEl.addEventListener('shown.bs.modal', function () {
+      modalBtn.focus();
+    });
+
+    modalBtn.addEventListener('click', function () {
+      if (typeof pendingAction === 'function') {
+        const action = pendingAction;
+        pendingAction = null;
+        modalBtn.disabled = true;
+        action();
+      }
+    });
+
+    confirmModalEl.addEventListener('hidden.bs.modal', function () {
+      pendingAction = null;
+      modalBtn.disabled = false;
+    });
   }
 
   // =========================================================================
-  // 3. Filter Bar Selects Auto-Submit
+  // 3. Filter bar selects auto-submit
   // =========================================================================
   document.querySelectorAll('.lms-filter-select').forEach(function (select) {
     select.addEventListener('change', function () {
-      if (select.form) {
-        select.form.submit();
-      }
+      if (select.form) select.form.submit();
     });
   });
 
   // =========================================================================
-  // 4. Close Mobile Sidebar on Link Click
+  // 4. Prevent double submission of data-entry forms
+  // =========================================================================
+  document.querySelectorAll('form[method="POST"], form[method="post"]').forEach(function (form) {
+    form.addEventListener('submit', function () {
+      form.querySelectorAll('button[type="submit"]').forEach(function (btn) {
+        // Defer so the button's own name/value is still submitted.
+        setTimeout(function () { btn.disabled = true; }, 0);
+      });
+    });
+  });
+  // Re-enable buttons when the page is restored from the back/forward cache.
+  window.addEventListener('pageshow', function (e) {
+    if (e.persisted) {
+      document.querySelectorAll('button[type="submit"]:disabled').forEach(function (btn) { btn.disabled = false; });
+    }
+  });
+
+  // =========================================================================
+  // 5. Close mobile sidebar on link click
   // =========================================================================
   const mobileOffcanvasEl = document.getElementById('lmsMobileSidebar');
-  if (mobileOffcanvasEl && typeof bootstrap !== 'undefined' && bootstrap.Offcanvas) {
-    const offcanvasInstance = bootstrap.Offcanvas.getInstance(mobileOffcanvasEl) || new bootstrap.Offcanvas(mobileOffcanvasEl);
+  if (mobileOffcanvasEl && hasBootstrap && bootstrap.Offcanvas) {
+    const offcanvasInstance = bootstrap.Offcanvas.getOrCreateInstance(mobileOffcanvasEl);
     mobileOffcanvasEl.querySelectorAll('.lms-nav-link').forEach(function (link) {
-      link.addEventListener('click', function () {
-        offcanvasInstance.hide();
-      });
+      link.addEventListener('click', function () { offcanvasInstance.hide(); });
     });
   }
 
   // =========================================================================
-  // 5. Book Form Live Preview
+  // 6. Book form: subcategory filtering + live spine preview
   // =========================================================================
   const bookForm = document.querySelector('.lms-book-form');
   if (bookForm) {
     const titleInput = bookForm.querySelector('#title');
     const categorySelect = bookForm.querySelector('#category_id');
+    const subSelect = bookForm.querySelector('#subcategory_id');
     const authorSelect = bookForm.querySelector('#author_id');
     const totalCopiesInput = bookForm.querySelector('#total_copies');
 
-    const previewSpine = document.getElementById('previewSpine');
+    const previewSpine = document.querySelector('.lms-book-preview-card .lms-spine');
     const previewTitle = document.getElementById('previewTitle');
     const previewAuthor = document.getElementById('previewAuthor');
     const previewPips = document.getElementById('previewPips');
+    const onLoan = previewPips ? parseInt(previewPips.getAttribute('data-on-loan') || '0', 10) : 0;
+
+    // Only show subcategories that belong to the chosen category.
+    function filterSubcategories() {
+      if (!categorySelect || !subSelect) return;
+      const catId = categorySelect.value;
+      let selectedStillVisible = false;
+      Array.prototype.forEach.call(subSelect.options, function (opt) {
+        const owner = opt.getAttribute('data-cat');
+        if (!owner) return; // placeholder
+        const visible = !catId || owner === catId;
+        opt.hidden = !visible;
+        opt.disabled = !visible;
+        if (visible && opt.selected) selectedStillVisible = true;
+      });
+      if (!selectedStillVisible) subSelect.value = '';
+    }
 
     function updatePreview() {
-      const title = (titleInput ? titleInput.value.trim() : '') || 'Untitled Book';
-      const firstLetter = title.charAt(0).toUpperCase() || '?';
+      const title = (titleInput ? titleInput.value.trim() : '') || 'Untitled book';
+      const firstChar = title.charAt(0).toUpperCase();
+      const letter = /[A-Z0-9]/i.test(firstChar) ? firstChar : '•';
       const catId = categorySelect ? parseInt(categorySelect.value, 10) || 0 : 0;
-      const spineColor = SPINE_PALETTE[Math.abs(catId) % 6];
 
       let authorName = 'No author selected';
       if (authorSelect && authorSelect.selectedIndex > 0) {
-        authorName = authorSelect.options[authorSelect.selectedIndex].text;
+        authorName = authorSelect.options[authorSelect.selectedIndex].text.trim();
       }
 
-      const total = totalCopiesInput ? parseInt(totalCopiesInput.value, 10) || 1 : 1;
+      const total = totalCopiesInput ? Math.max(parseInt(totalCopiesInput.value, 10) || 0, 0) : 1;
 
       if (previewSpine) {
-        previewSpine.style.setProperty('--spine', spineColor);
-        previewSpine.innerHTML = `
-          <span class="lms-spine__binding"></span>
-          <span class="lms-spine__cover">
-            <span class="lms-spine__emboss">
-              <span class="lms-spine__letter">${firstLetter}</span>
-            </span>
-          </span>
-          <span class="lms-spine__pages"></span>
-          <span class="lms-spine__ribbon"></span>
-        `;
+        previewSpine.className = 'lms-spine lms-spine--lg ' + spineClassFor(catId);
+        previewSpine.innerHTML =
+          '<span class="lms-spine__binding"></span>' +
+          '<span class="lms-spine__cover"><span class="lms-spine__emboss">' +
+          '<span class="lms-spine__letter"></span></span></span>' +
+          '<span class="lms-spine__pages"></span>' +
+          '<span class="lms-spine__ribbon"></span>';
+        previewSpine.querySelector('.lms-spine__letter').textContent = letter;
       }
-      if (previewTitle) {
-        previewTitle.textContent = title;
-      }
-      if (previewAuthor) {
-        previewAuthor.textContent = authorName;
-      }
+      if (previewTitle) previewTitle.textContent = title;
+      if (previewAuthor) previewAuthor.textContent = authorName;
       if (previewPips) {
-        let pipsHtml = '';
-        const count = Math.min(Math.max(total, 1), 8);
-        for (let i = 0; i < count; i++) {
-          pipsHtml += '<span class="lms-pip is-filled"></span>';
+        const shown = Math.min(total, 10);
+        const available = Math.max(total - onLoan, 0);
+        previewPips.innerHTML = '';
+        for (let i = 0; i < shown; i++) {
+          const pip = document.createElement('span');
+          pip.className = 'lms-pip' + (i < available ? ' is-filled' : '');
+          previewPips.appendChild(pip);
         }
-        previewPips.innerHTML = pipsHtml;
+        const label = document.getElementById('previewPipsLabel');
+        if (label) {
+          label.textContent = total > 0
+            ? available + ' of ' + total + (total === 1 ? ' copy' : ' copies') + ' available'
+            : 'Enter at least 1 copy';
+        }
       }
     }
 
     if (titleInput) titleInput.addEventListener('input', updatePreview);
-    if (categorySelect) categorySelect.addEventListener('change', updatePreview);
+    if (categorySelect) categorySelect.addEventListener('change', function () { filterSubcategories(); updatePreview(); });
     if (authorSelect) authorSelect.addEventListener('change', updatePreview);
     if (totalCopiesInput) totalCopiesInput.addEventListener('input', updatePreview);
 
+    filterSubcategories();
     updatePreview();
   }
 
   // =========================================================================
-  // 6. Issue Book Form Live Summary
+  // 7. Issue book form: live summary
   // =========================================================================
   const issueForm = document.querySelector('.lms-issue-form');
   if (issueForm) {
@@ -214,20 +242,20 @@ document.addEventListener('DOMContentLoaded', function () {
     const summaryMember = document.getElementById('summaryMember');
     const summaryBook = document.getElementById('summaryBook');
 
+    function selectedText(select) {
+      return select && select.selectedIndex > 0
+        ? select.options[select.selectedIndex].text.trim()
+        : 'None selected';
+    }
+
     function updateIssueSummary() {
-      if (summaryMember && memberSelect) {
-        if (memberSelect.selectedIndex > 0) {
-          summaryMember.textContent = memberSelect.options[memberSelect.selectedIndex].text;
-        } else {
-          summaryMember.textContent = 'None selected';
-        }
+      if (summaryMember) {
+        summaryMember.textContent = selectedText(memberSelect);
+        summaryMember.classList.toggle('text-muted', !memberSelect || memberSelect.selectedIndex <= 0);
       }
-      if (summaryBook && bookSelect) {
-        if (bookSelect.selectedIndex > 0) {
-          summaryBook.textContent = bookSelect.options[bookSelect.selectedIndex].text;
-        } else {
-          summaryBook.textContent = 'None selected';
-        }
+      if (summaryBook) {
+        summaryBook.textContent = selectedText(bookSelect);
+        summaryBook.classList.toggle('text-muted', !bookSelect || bookSelect.selectedIndex <= 0);
       }
     }
 
@@ -237,7 +265,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   // =========================================================================
-  // 7. Password Visibility Toggle (Login Page)
+  // 8. Password visibility toggle + demo credentials (login page)
   // =========================================================================
   const togglePassBtn = document.getElementById('lms-toggle-password');
   const passInput = document.getElementById('password');
@@ -246,16 +274,11 @@ document.addEventListener('DOMContentLoaded', function () {
       const isPassword = passInput.getAttribute('type') === 'password';
       passInput.setAttribute('type', isPassword ? 'text' : 'password');
       const icon = togglePassBtn.querySelector('i');
-      if (icon) {
-        icon.className = isPassword ? 'bi bi-eye-slash' : 'bi bi-eye';
-      }
+      if (icon) icon.className = isPassword ? 'bi bi-eye-slash' : 'bi bi-eye';
       togglePassBtn.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
     });
   }
 
-  // =========================================================================
-  // 7b. Demo Credentials Autofill Helper
-  // =========================================================================
   const demoFillBtn = document.getElementById('lmsDemoFill');
   if (demoFillBtn) {
     demoFillBtn.addEventListener('click', function () {
@@ -270,50 +293,39 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   // =========================================================================
-  // 8. Dark Mode Toggle (persisted via localStorage)
+  // 9. Dark mode toggle
+  //    The initial theme is applied inline in <head> (no flash). A choice is
+  //    only stored once the user toggles, so until then the OS setting wins.
   // =========================================================================
-  const DARK_KEY = 'lms-theme';
+  const THEME_KEY = 'lms-theme';
   const root = document.documentElement;
 
-  function applyTheme(theme) {
+  function applyTheme(theme, persist) {
     root.setAttribute('data-theme', theme);
     root.setAttribute('data-bs-theme', theme);
-    localStorage.setItem(DARK_KEY, theme);
+    if (persist) {
+      try { localStorage.setItem(THEME_KEY, theme); } catch (e) {}
+    }
   }
 
-  // On load — restore saved preference, then fall back to system preference
-  (function () {
-    const saved = localStorage.getItem(DARK_KEY);
-    if (saved) {
-      applyTheme(saved);
-    } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      applyTheme('dark');
-    } else {
-      applyTheme('light');
-    }
-  })();
-
-  // Wire up all toggle buttons (sidebar footer + topbar)
   document.querySelectorAll('.lms-theme-toggle').forEach(function (btn) {
+    btn.setAttribute('title', 'Toggle dark / light mode');
     btn.addEventListener('click', function () {
       const current = root.getAttribute('data-theme') || 'light';
-      applyTheme(current === 'dark' ? 'light' : 'dark');
+      applyTheme(current === 'dark' ? 'light' : 'dark', true);
     });
-    btn.setAttribute('title', 'Toggle dark / light mode');
-    btn.setAttribute('aria-label', 'Toggle dark / light mode');
   });
 
-  // Listen for OS-level theme changes
   if (window.matchMedia) {
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function (e) {
-      if (!localStorage.getItem(DARK_KEY)) {
-        applyTheme(e.matches ? 'dark' : 'light');
-      }
+      let saved = null;
+      try { saved = localStorage.getItem(THEME_KEY); } catch (err) {}
+      if (!saved) applyTheme(e.matches ? 'dark' : 'light', false);
     });
   }
 
   // =========================================================================
-  // 9. Book Catalog View Switcher (List vs Grid)
+  // 10. Book catalogue view switcher (list vs grid)
   // =========================================================================
   const viewListBtn = document.getElementById('lmsViewList');
   const viewGridBtn = document.getElementById('lmsViewGrid');
@@ -324,32 +336,21 @@ document.addEventListener('DOMContentLoaded', function () {
     const VIEW_KEY = 'lms-books-view';
 
     function setBookView(mode) {
-      if (mode === 'grid') {
-        listView.style.display = 'none';
-        gridView.style.display = 'grid';
-        viewGridBtn.classList.add('active');
-        viewGridBtn.setAttribute('aria-pressed', 'true');
-        viewListBtn.classList.remove('active');
-        viewListBtn.setAttribute('aria-pressed', 'false');
-        try { localStorage.setItem(VIEW_KEY, 'grid'); } catch (e) {}
-      } else {
-        listView.style.display = '';
-        gridView.style.display = 'none';
-        viewListBtn.classList.add('active');
-        viewListBtn.setAttribute('aria-pressed', 'true');
-        viewGridBtn.classList.remove('active');
-        viewGridBtn.setAttribute('aria-pressed', 'false');
-        try { localStorage.setItem(VIEW_KEY, 'list'); } catch (e) {}
-      }
+      const grid = mode === 'grid';
+      listView.style.display = grid ? 'none' : '';
+      gridView.style.display = grid ? 'grid' : 'none';
+      viewGridBtn.classList.toggle('active', grid);
+      viewGridBtn.setAttribute('aria-pressed', grid ? 'true' : 'false');
+      viewListBtn.classList.toggle('active', !grid);
+      viewListBtn.setAttribute('aria-pressed', grid ? 'false' : 'true');
+      try { localStorage.setItem(VIEW_KEY, grid ? 'grid' : 'list'); } catch (e) {}
     }
 
     viewListBtn.addEventListener('click', function () { setBookView('list'); });
     viewGridBtn.addEventListener('click', function () { setBookView('grid'); });
 
-    // Restore saved user preference (defaults to list)
-    try {
-      const savedView = localStorage.getItem(VIEW_KEY) || 'list';
-      setBookView(savedView);
-    } catch (e) {}
+    let savedView = 'list';
+    try { savedView = localStorage.getItem(VIEW_KEY) || 'list'; } catch (e) {}
+    setBookView(savedView);
   }
 });

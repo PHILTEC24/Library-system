@@ -18,13 +18,63 @@ function getFlash() {
     return null;
 }
 
+/**
+ * Renders the pending flash message (if any). Messages are stored as plain
+ * text and escaped here, so callers must NOT pre-escape them.
+ */
 function displayFlash() {
     $flash = getFlash();
     if ($flash) {
         $type = in_array($flash['type'], ['error', 'danger']) ? 'danger' : ($flash['type'] === 'success' ? 'success' : 'warning');
-        echo '<div class="alert alert-' . $type . ' alert-dismissible fade show" role="alert">';
-        echo e($flash['message']);
-        echo '<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>';
+        $icons = [
+            'success' => 'bi-check-circle-fill',
+            'danger'  => 'bi-exclamation-octagon-fill',
+            'warning' => 'bi-exclamation-triangle-fill',
+        ];
+        echo '<div class="alert alert-' . $type . ' alert-dismissible fade show lms-flash" role="' . ($type === 'danger' ? 'alert' : 'status') . '">';
+        echo '<i class="bi ' . $icons[$type] . ' lms-flash__icon" aria-hidden="true"></i>';
+        echo '<span>' . e($flash['message']) . '</span>';
+        echo '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>';
+    }
+}
+
+/* --------------------------------------------------------------------------
+ * CSRF protection
+ * ------------------------------------------------------------------------ */
+
+function csrf_token() {
+    if (session_status() === PHP_SESSION_NONE) session_start();
+    if (empty($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+    return $_SESSION['csrf_token'];
+}
+
+function csrf_field() {
+    return '<input type="hidden" name="csrf_token" value="' . e(csrf_token()) . '">';
+}
+
+function csrf_is_valid() {
+    $sent = $_POST['csrf_token'] ?? ($_SERVER['HTTP_X_CSRF_TOKEN'] ?? '');
+    return is_string($sent) && $sent !== '' && hash_equals(csrf_token(), $sent);
+}
+
+/**
+ * State-changing endpoints (delete / return) must be reached by POST.
+ * Redirects to $fallbackUrl with an error message otherwise.
+ * CSRF validity for POSTs is already enforced in includes/auth_check.php.
+ */
+function require_post($fallbackUrl) {
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        setFlash('danger', 'That action must be confirmed from the page. Please try again.');
+        redirect($fallbackUrl);
+    }
+}
+
+function require_admin($fallbackUrl) {
+    if (!is_admin()) {
+        setFlash('danger', 'Only administrators can perform that action.');
+        redirect($fallbackUrl);
     }
 }
 

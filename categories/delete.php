@@ -4,6 +4,8 @@ require_once __DIR__ . '/../includes/auth_check.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/functions.php';
 
+require_post(BASE_URL . '/categories/index.php');
+
 $id = intval($_GET['id'] ?? 0);
 if ($id <= 0) {
     setFlash('danger', 'Invalid category ID.');
@@ -25,24 +27,22 @@ $bookCheck->execute([$id]);
 $bookCount = $bookCheck->fetchColumn();
 
 if ($bookCount > 0) {
-    setFlash('danger', 'Cannot delete category "' . e($category['name']) . '" — it is currently assigned to ' . $bookCount . ' book(s).');
+    setFlash('danger', 'Cannot delete category "' . $category['name'] . '" — it is currently assigned to ' . $bookCount . ' book(s).');
     redirect(BASE_URL . '/categories/index.php');
 }
 
-// Check if sub_categories exist
-$subCheck = $pdo->prepare('SELECT COUNT(*) FROM sub_categories WHERE category_id = ?');
-$subCheck->execute([$id]);
-if ($subCheck->fetchColumn() > 0) {
-    setFlash('danger', 'Cannot delete category "' . e($category['name']) . '" — subcategories exist under it. Delete them first.');
-    redirect(BASE_URL . '/categories/index.php');
-}
-
+// No books use this category, so its (empty) subcategories can go with it.
 try {
-    $del = $pdo->prepare('DELETE FROM categories WHERE category_id = ?');
-    $del->execute([$id]);
-    setFlash('success', 'Category "' . e($category['name']) . '" deleted successfully.');
+    $pdo->beginTransaction();
+    $pdo->prepare('DELETE FROM sub_categories WHERE category_id = ?')->execute([$id]);
+    $pdo->prepare('DELETE FROM categories WHERE category_id = ?')->execute([$id]);
+    $pdo->commit();
+    setFlash('success', 'Category "' . $category['name'] . '" deleted successfully.');
 } catch (PDOException $e) {
-    setFlash('danger', 'Database error: ' . e($e->getMessage()));
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
+    setFlash('danger', 'Could not delete category "' . $category['name'] . '": ' . $e->getMessage());
 }
 
 redirect(BASE_URL . '/categories/index.php');
