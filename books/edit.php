@@ -81,6 +81,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($subcategory_id <= 0) {
         $errors['subcategory_id'] = 'Please select a valid subcategory for this book.';
+    } elseif ($category_id > 0) {
+        $subOwner = $pdo->prepare('SELECT category_id FROM sub_categories WHERE sub_category_id = ?');
+        $subOwner->execute([$subcategory_id]);
+        if ((int)$subOwner->fetchColumn() !== $category_id) {
+            $errors['subcategory_id'] = 'The selected subcategory does not belong to the selected category.';
+        }
     }
 
     if ($year_published !== '') {
@@ -90,8 +96,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
+    $copiesOnLoan = max(0, intval($book['total_copies']) - intval($book['available_copies']));
     if ($total_copies < 1) {
         $errors['total_copies'] = 'Total copies must be at least 1.';
+    } elseif ($total_copies < $copiesOnLoan) {
+        $errors['total_copies'] = 'Total copies cannot be less than the ' . $copiesOnLoan . ' ' . ($copiesOnLoan === 1 ? 'copy' : 'copies') . ' currently on loan.';
     }
 
     if (empty($errors)) {
@@ -105,8 +114,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $pdo->beginTransaction();
 
-            $copyDelta = $total_copies - intval($book['total_copies']);
-            $newAvailable = max(0, intval($book['available_copies']) + $copyDelta);
+            $newAvailable = $total_copies - $copiesOnLoan;
 
             $stmt = $pdo->prepare(
                 "UPDATE books SET isbn=?, title=?, sub_category_id=?, publisher=?,
@@ -126,16 +134,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $id,
             ]);
 
-            if ($author_id > 0) {
-                $checkBa = $pdo->prepare('SELECT author_id FROM book_authors WHERE book_id = ? LIMIT 1');
-                $checkBa->execute([$id]);
-                if ($checkBa->fetch()) {
-                    $updBa = $pdo->prepare('UPDATE book_authors SET author_id = ? WHERE book_id = ?');
-                    $updBa->execute([$author_id, $id]);
-                } else {
-                    $insBa = $pdo->prepare("INSERT INTO book_authors (book_id, author_id, author_role) VALUES (?, ?, 'primary')");
-                    $insBa->execute([$id, $author_id]);
+            // Replace only the primary author; co-authors stay linked.
+            $currentAuthorId = intval($book['author_id'] ?? 0);
+            if ($author_id > 0 && $author_id !== $currentAuthorId) {
+                if ($currentAuthorId > 0) {
+                    $pdo->prepare('DELETE FROM book_authors WHERE book_id = ? AND author_id = ?')
+                        ->execute([$id, $currentAuthorId]);
                 }
+                // The new author may already be linked as a co-author.
+                $pdo->prepare('DELETE FROM book_authors WHERE book_id = ? AND author_id = ?')
+                    ->execute([$id, $author_id]);
+                $pdo->prepare("INSERT INTO book_authors (book_id, author_id, author_role) VALUES (?, ?, 'primary')")
+                    ->execute([$id, $author_id]);
             }
 
             $pdo->commit();
@@ -145,7 +155,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($book['ebook_file'] !== $ebookFile) {
                 delete_book_media_upload($book['ebook_file']);
             }
-            setFlash('success', 'Book "' . htmlspecialchars($title) . '" updated successfully.');
+            setFlash('success', 'Book "' . $title . '" updated successfully.');
             header('Location: ' . BASE_URL . '/books/index.php');
             exit;
         } catch (Exception $e) {
@@ -184,6 +194,7 @@ require_once __DIR__ . '/../includes/navbar.php';
 <?php endif; ?>
 
 <form method="POST" action="" enctype="multipart/form-data" class="lms-book-form" novalidate>
+    <?= csrf_field() ?>
     <div class="row g-4">
         <!-- Left Column: Form Cards (8 of 12) -->
         <div class="col-lg-8">
@@ -247,7 +258,7 @@ require_once __DIR__ . '/../includes/navbar.php';
                                     class="form-select <?= isset($errors['category_id']) ? 'is-invalid' : '' ?>" required>
                                 <option value="">Select a category</option>
                                 <?php foreach ($categories as $cat): ?>
-                                    <option value="<?= $cat['id'] ?>" <?= ($old['category_id'] == $cat['id']) ? 'selected' : '' ?>>
+                                    <option value="<?= $cat['id'] ?>" <?= (($old['category_id'] ?? 0) == $cat['id']) ? 'selected' : '' ?>>
                                         <?= e($cat['name']) ?>
                                     </option>
                                 <?php endforeach; ?>
@@ -263,7 +274,7 @@ require_once __DIR__ . '/../includes/navbar.php';
                                     class="form-select <?= isset($errors['subcategory_id']) ? 'is-invalid' : '' ?>">
                                 <option value="">Select a subcategory</option>
                                 <?php foreach ($subcategories as $sub): ?>
-                                    <option value="<?= $sub['id'] ?>" data-cat="<?= $sub['category_id'] ?>" <?= ($old['sub_category_id'] == $sub['id']) ? 'selected' : '' ?>>
+                                    <option value="<?= $sub['id'] ?>" data-cat="<?= $sub['category_id'] ?>" <?= (($old['subcategory_id'] ?? $old['sub_category_id'] ?? 0) == $sub['id']) ? 'selected' : '' ?>>
                                         <?= e($sub['category_name']) ?> &rarr; <?= e($sub['name']) ?>
                                     </option>
                                 <?php endforeach; ?>
@@ -279,7 +290,7 @@ require_once __DIR__ . '/../includes/navbar.php';
                                     class="form-select <?= isset($errors['author_id']) ? 'is-invalid' : '' ?>" required>
                                 <option value="">Select an author</option>
                                 <?php foreach ($authors as $author): ?>
-                                    <option value="<?= $author['id'] ?>" <?= ($old['author_id'] == $author['id']) ? 'selected' : '' ?>>
+                                    <option value="<?= $author['id'] ?>" <?= (($old['author_id'] ?? 0) == $author['id']) ? 'selected' : '' ?>>
                                         <?= e($author['name']) ?>
                                     </option>
                                 <?php endforeach; ?>
@@ -315,7 +326,7 @@ require_once __DIR__ . '/../includes/navbar.php';
 
                         <div class="col-md-6">
                             <label class="form-label">Available copies</label>
-                            <input type="text" class="form-control bg-light" value="<?= e($book['available_copies']) ?>" readonly disabled>
+                            <input type="text" class="form-control" value="<?= e($book['available_copies']) ?>" readonly disabled>
                             <div class="form-text">Changes automatically when books are issued or returned.</div>
                         </div>
                     </div>
@@ -336,7 +347,7 @@ require_once __DIR__ . '/../includes/navbar.php';
                             <div class="d-flex align-items-center gap-3 mt-2">
                                 <img src="<?= BASE_URL ?>/books/media.php?id=<?= (int)$book['id'] ?>&amp;type=cover"
                                      alt="Current cover for <?= e($book['title']) ?>"
-                                     style="width: 64px; height: 88px; object-fit: cover; border-radius: .25rem;">
+                                     class="lms-cover-thumb lms-cover-thumb--lg">
                                 <label class="form-check-label">
                                     <input type="checkbox" class="form-check-input" name="remove_cover" value="1"
                                            <?= !empty($_POST['remove_cover']) ? 'checked' : '' ?>>
@@ -377,39 +388,19 @@ require_once __DIR__ . '/../includes/navbar.php';
         <!-- Right Column: Live Spine Preview (4 of 12) -->
         <div class="col-lg-4">
             <div class="lms-book-preview-card">
-                <p class="text-muted small fw-semibold text-uppercase tracking-wider mb-3">
-                    <i class="bi bi-eye me-1 text-primary"></i> Live spine preview
+                <p class="lms-eyebrow mb-3">
+                    <i class="bi bi-eye me-1"></i> Live spine preview
                 </p>
                 <div class="lms-book-preview-card__spine-wrap">
-                    <span id="previewSpine" class="lms-spine lms-spine--lg" style="--spine: #3F5BA9;" aria-hidden="true">
-                        <?= e(mb_strtoupper(mb_substr($book['title'], 0, 1, 'UTF-8'), 'UTF-8')) ?>
-                    </span>
+                    <?= spine_tile($old['title'] ?? $book['title'], (int)($old['category_id'] ?? 0), 'lg') ?>
                 </div>
                 <div id="previewTitle" class="lms-book-preview-card__title"><?= e($book['title']) ?></div>
-                <div id="previewAuthor" class="lms-book-preview-card__author">
-                    <?php
-                    $initialAuthor = 'No author selected';
-                    foreach ($authors as $a) {
-                        if ($a['id'] == $book['author_id']) {
-                            $initialAuthor = $a['name'];
-                            break;
-                        }
-                    }
-                    echo e($initialAuthor);
-                    ?>
-                </div>
+                <div id="previewAuthor" class="lms-book-preview-card__author">No author selected</div>
 
-                <div class="mt-3 pt-3 border-top border-light-subtle">
-                    <div class="text-muted small mb-2">Available copies preview:</div>
-                    <div id="previewPips" class="lms-pips justify-content-center">
-                        <?php
-                        $tot = min(max(intval($book['total_copies']), 1), 8);
-                        $avail = intval($book['available_copies']);
-                        for ($i = 0; $i < $tot; $i++) {
-                            $fill = ($i < $avail) ? 'is-filled' : '';
-                            echo '<span class="lms-pip ' . $fill . '"></span>';
-                        }
-                        ?>
+                <div class="lms-book-preview-card__copies">
+                    <div id="previewPips" class="lms-pips" data-on-loan="<?= max(0, (int)$book['total_copies'] - (int)$book['available_copies']) ?>"></div>
+                    <div id="previewPipsLabel" class="lms-book-preview-card__copies-label">
+                        <?= (int)$book['available_copies'] ?> of <?= pluralize((int)$book['total_copies'], 'copy', 'copies') ?> available
                     </div>
                 </div>
             </div>

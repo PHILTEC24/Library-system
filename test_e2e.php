@@ -58,10 +58,11 @@ if ($res['code'] === 200 && str_contains($res['body'], 'Library Management')) {
 
 // 3. Perform login against Neon DB users
 echo "3. Submitting credentials (admin / password) to login:\n";
+preg_match('/name="csrf_token" value="([a-f0-9]+)"/', $res['body'] ?? '', $csrfMatch);
 $res = http_request(
     "http://127.0.0.1:8000/library-system/auth/login.php",
     'POST',
-    ['username' => 'admin', 'password' => 'password'],
+    ['username' => 'admin', 'password' => 'password', 'csrf_token' => $csrfMatch[1] ?? ''],
     false
 );
 echo "   Login status code: {$res['code']}\n";

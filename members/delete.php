@@ -4,6 +4,8 @@ require_once __DIR__ . '/../includes/auth_check.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/functions.php';
 
+require_post(BASE_URL . '/members/index.php');
+
 $id = intval($_GET['id'] ?? 0);
 if ($id <= 0) {
     setFlash('danger', 'Invalid member ID.');
@@ -26,7 +28,7 @@ $activeLoanStmt->execute([$id]);
 $activeLoans = $activeLoanStmt->fetchColumn();
 
 if ($activeLoans > 0) {
-    setFlash('danger', 'Cannot delete "' . e($member['full_name']) . '" (' . e($member['member_number']) . '): member currently has ' . $activeLoans . ' unreturned book(s). Please return all books before deleting.');
+    setFlash('danger', 'Cannot delete "' . $member['full_name'] . '" (' . $member['member_number'] . '): member currently has ' . $activeLoans . ' unreturned book(s). Please return all books before deleting.');
     redirect(BASE_URL . '/members/index.php');
 }
 
@@ -36,7 +38,7 @@ $loanStmt->execute([$id]);
 $totalLoans = $loanStmt->fetchColumn();
 
 if ($totalLoans > 0) {
-    setFlash('danger', 'Cannot delete "' . e($member['full_name']) . '" (' . e($member['member_number']) . '): member has ' . $totalLoans . ' associated loan record(s). Cannot delete a member with active or historical loans.');
+    setFlash('danger', 'Cannot delete "' . $member['full_name'] . '" (' . $member['member_number'] . '): member has ' . $totalLoans . ' associated loan record(s). Cannot delete a member with active or historical loans.');
     redirect(BASE_URL . '/members/index.php');
 }
 
@@ -45,9 +47,9 @@ try {
     $delStmt = $pdo->prepare('DELETE FROM members WHERE member_id = ?');
     $delStmt->execute([$id]);
 
-    setFlash('success', 'Member "' . e($member['full_name']) . '" was successfully deleted.');
+    setFlash('success', 'Member "' . $member['full_name'] . '" was successfully deleted.');
 } catch (PDOException $e) {
-    setFlash('danger', 'Could not delete member due to a database constraint. Error: ' . e($e->getMessage()));
+    setFlash('danger', 'Could not delete member due to a database constraint. Error: ' . $e->getMessage());
 }
 
 redirect(BASE_URL . '/members/index.php');

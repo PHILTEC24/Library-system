@@ -4,6 +4,8 @@ require_once __DIR__ . '/../includes/auth_check.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/functions.php';
 
+require_post(BASE_URL . '/authors/index.php');
+
 $id = (int)($_GET['id'] ?? 0);
 if ($id <= 0) {
     setFlash('error', 'Invalid author ID.');

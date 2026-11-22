@@ -44,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt = $pdo->prepare('UPDATE categories SET name = ?, description = ? WHERE category_id = ?');
         $stmt->execute([$name, $description ?: null, $id]);
 
-        setFlash('success', 'Category "' . e($name) . '" updated successfully.');
+        setFlash('success', 'Category "' . $name . '" updated successfully.');
         redirect(BASE_URL . '/categories/index.php');
     }
 }
@@ -87,6 +87,7 @@ require_once __DIR__ . '/../includes/navbar.php';
             </div>
             <div class="card-body p-4">
                 <form method="POST" action="" novalidate>
+                    <?= csrf_field() ?>
                     <div class="mb-3">
                         <label for="name" class="form-label fw-semibold text-dark">
                             Category Name <span class="text-danger">*</span>

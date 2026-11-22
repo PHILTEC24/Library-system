@@ -15,9 +15,16 @@ if (!in_array($filter, $validFilters)) {
 }
 
 // Fetch tab counts
+$todayStr      = date('Y-m-d');
 $countAll      = (int)$pdo->query("SELECT COUNT(*) FROM loans")->fetchColumn();
-$countActive   = (int)$pdo->query("SELECT COUNT(*) FROM loans WHERE date_returned IS NULL AND due_date >= CURDATE()")->fetchColumn();
-$countOverdue  = (int)$pdo->query("SELECT COUNT(*) FROM loans WHERE date_returned IS NULL AND due_date < CURDATE()")->fetchColumn();
+$stmtActive    = $pdo->prepare("SELECT COUNT(*) FROM loans WHERE date_returned IS NULL AND due_date >= ?");
+$stmtActive->execute([$todayStr]);
+$countActive   = (int)$stmtActive->fetchColumn();
+
+$stmtOverdue   = $pdo->prepare("SELECT COUNT(*) FROM loans WHERE date_returned IS NULL AND due_date < ?");
+$stmtOverdue->execute([$todayStr]);
+$countOverdue  = (int)$stmtOverdue->fetchColumn();
+
 $countReturned = (int)$pdo->query("SELECT COUNT(*) FROM loans WHERE date_returned IS NOT NULL")->fetchColumn();
 $totalOnLoan   = $countActive + $countOverdue;
 
@@ -26,7 +33,7 @@ $params = [];
 $sql = "SELECT l.loan_id AS id,
                b.title AS book_title,
                b.book_id,
-               b.sub_category_id,
+               sc.category_id,
                m.full_name AS member_name,
                m.member_no AS member_number,
                l.date_issued,
@@ -34,11 +41,12 @@ $sql = "SELECT l.loan_id AS id,
                l.date_returned,
                CASE
                    WHEN l.date_returned IS NOT NULL THEN 'returned'
-                   WHEN l.due_date < CURDATE() THEN 'overdue'
+                   WHEN l.due_date < '$todayStr' THEN 'overdue'
                    ELSE 'active'
                END AS computed_status
         FROM loans l
         JOIN books b ON l.book_id = b.book_id
+        LEFT JOIN sub_categories sc ON b.sub_category_id = sc.sub_category_id
         JOIN members m ON l.member_id = m.member_id
         WHERE 1=1";
 
@@ -52,9 +60,9 @@ if ($search !== '') {
 if ($filter === 'returned') {
     $sql .= " AND l.date_returned IS NOT NULL";
 } elseif ($filter === 'active') {
-    $sql .= " AND l.date_returned IS NULL AND l.due_date >= CURDATE()";
+    $sql .= " AND l.date_returned IS NULL AND l.due_date >= '$todayStr'";
 } elseif ($filter === 'overdue') {
-    $sql .= " AND l.date_returned IS NULL AND l.due_date < CURDATE()";
+    $sql .= " AND l.date_returned IS NULL AND l.due_date < '$todayStr'";
 }
 
 $sql .= " ORDER BY l.loan_id DESC";
@@ -79,7 +87,6 @@ require_once __DIR__ . '/../includes/navbar.php';
     '</a>'
 ) ?>
 
-<?php displayFlash(); ?>
 
 <!-- Table & Filter Card -->
 <div class="lms-table-card mb-4">
@@ -178,14 +185,19 @@ require_once __DIR__ . '/../includes/navbar.php';
                         $status = $loan['computed_status'];
                         $isOverdue = ($status === 'overdue');
                         $isReturned = ($status === 'returned');
+                        $finePercent = 0;
+                        $overdueDays = 0;
 
                         // Pill style
                         if ($isReturned) {
-                            $pillClass = 'lms-pill--neutral';
-                            $statusLabel = 'Returned';
+                            $isLateReturn = (!empty($loan['date_returned']) && $loan['date_returned'] > $loan['due_date']);
+                            $pillClass = $isLateReturn ? 'lms-pill--warning' : 'lms-pill--neutral';
+                            $statusLabel = $isLateReturn ? 'Returned (Late)' : 'Returned';
                         } elseif ($isOverdue) {
                             $pillClass = 'lms-pill--danger';
                             $statusLabel = 'Overdue';
+                            $overdueDays = max(1, abs((int)(new DateTime('today'))->diff(new DateTime($loan['due_date']))->format('%r%a')));
+                            $finePercent = $overdueDays * 5;
                         } else {
                             $daysLeft = (int)(new DateTime('today'))->diff(new DateTime($loan['due_date']))->format('%r%a');
                             if ($daysLeft <= 3) {
@@ -200,22 +212,22 @@ require_once __DIR__ . '/../includes/navbar.php';
                     <tr class="<?= $isOverdue ? 'lms-row-overdue' : '' ?>">
                         <td data-label="Book">
                             <div class="d-flex align-items-center gap-3">
-                                <?= spine_tile($loan['book_title'], $loan['sub_category_id'] ?? 1, 'sm') ?>
-                                <span class="fw-semibold text-dark"><?= e($loan['book_title']) ?></span>
+                                <?= spine_tile($loan['book_title'], $loan['category_id'] ?? 0, 'sm') ?>
+                                <span class="fw-semibold text-body"><?= e($loan['book_title']) ?></span>
                             </div>
                         </td>
                         <td data-label="Member">
-                            <div class="fw-semibold text-dark"><?= e($loan['member_name']) ?></div>
+                            <div class="fw-semibold text-body"><?= e($loan['member_name']) ?></div>
                             <div class="text-muted small"><?= e($loan['member_number']) ?></div>
                         </td>
-                        <td data-label="Issued" class="text-secondary">
+                        <td data-label="Issued" class="text-secondary text-nowrap lms-tabular">
                             <?= format_date($loan['date_issued']) ?>
                         </td>
                         <td data-label="Due">
-                            <div class="fw-medium text-dark"><?= format_date($loan['due_date']) ?></div>
+                            <div class="fw-medium text-body text-nowrap lms-tabular"><?= format_date($loan['due_date']) ?></div>
                             <div class="small"><?= relative_due($loan['due_date'], $loan['date_returned']) ?></div>
                         </td>
-                        <td data-label="Returned" class="text-secondary">
+                        <td data-label="Returned" class="text-secondary text-nowrap lms-tabular">
                             <?= $loan['date_returned'] ? format_date($loan['date_returned']) : '<span class="text-muted">—</span>' ?>
                         </td>
                         <td data-label="Status">
@@ -229,9 +241,9 @@ require_once __DIR__ . '/../includes/navbar.php';
                                    class="btn btn-sm btn-outline-success lms-btn-action"
                                    data-confirm
                                    data-confirm-title="Mark Book as Returned"
-                                   data-confirm-message="Return '<?= e($loan['book_title']) ?>' borrowed by <?= e($loan['member_name']) ?>?<?= $isOverdue ? ' (Note: This loan is currently overdue).' : '' ?>"
+                                   data-confirm-message="Return &quot;<?= e($loan['book_title']) ?>&quot; borrowed by <?= e($loan['member_name']) ?>?<?= $isOverdue ? ' This loan is ' . $overdueDays . ' ' . ($overdueDays === 1 ? 'day' : 'days') . ' overdue (late fine: ' . $finePercent . '% of book price).' : '' ?>"
                                    data-confirm-button="Mark as returned"
-                                   data-confirm-style="primary"
+                                   data-confirm-style="primary" data-method="post"
                                    title="Mark book as returned">
                                     <i class="bi bi-check-circle me-1"></i>Return
                                 </a>

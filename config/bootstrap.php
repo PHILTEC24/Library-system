@@ -22,7 +22,14 @@ foreach ($envFiles as $file) {
     }
 }
 
-// 2. Auto-detect BASE_URL
+// 2. Application timezone. Due dates, overdue counts and the dashboard
+//    greeting all depend on "today", so don't rely on whatever php.ini says.
+$appTimezone = getenv('APP_TIMEZONE') ?: ($_ENV['APP_TIMEZONE'] ?? 'Africa/Kampala');
+if (!@date_default_timezone_set($appTimezone)) {
+    date_default_timezone_set('Africa/Kampala');
+}
+
+// 3. Auto-detect BASE_URL
 if (!defined('BASE_URL')) {
     $envBase = getenv('BASE_URL');
     if ($envBase === false && isset($_ENV['BASE_URL'])) {

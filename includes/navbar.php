@@ -6,7 +6,10 @@ global $pdo;
 $overdueNavCount = 0;
 if (isset($pdo)) {
     try {
-        $overdueNavCount = (int) $pdo->query("SELECT COUNT(*) FROM loans WHERE date_returned IS NULL AND due_date < CURDATE()")->fetchColumn();
+        $todayStr = date('Y-m-d');
+        $stmtNav = $pdo->prepare("SELECT COUNT(*) FROM loans WHERE date_returned IS NULL AND due_date < ?");
+        $stmtNav->execute([$todayStr]);
+        $overdueNavCount = (int)$stmtNav->fetchColumn();
     } catch (Exception $e) {
     }
 }
@@ -199,12 +202,13 @@ $renderNavItems = function () use ($currentPage, $overdueNavCount) {
             </button>
 
             <!-- Quick Action: Issue Book -->
-            <a href="<?= BASE_URL ?>/loans/issue.php" class="btn btn-primary btn-sm">
-                <i class="bi bi-box-arrow-up-right me-1"></i>
-                <span>Issue book</span>
+            <a href="<?= BASE_URL ?>/loans/issue.php" class="btn btn-primary btn-sm" title="Issue book">
+                <i class="bi bi-box-arrow-up-right me-0 me-sm-1"></i>
+                <span class="d-none d-sm-inline">Issue book</span>
             </a>
         </div>
     </header>
 
     <!-- Main Content Landmark -->
     <main id="main" class="lms-content-container">
+        <?php displayFlash(); ?>

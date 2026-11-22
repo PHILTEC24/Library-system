@@ -178,16 +178,16 @@ if ($usersCount === 0) {
     (11, 10, 5, 'primary');
 
     INSERT INTO members (member_id, member_no, full_name, email, phone, status, date_joined) VALUES
-    (1,  'MEM001', 'Alice Johnson',   'alice.johnson@email.com',   '555-0101', 'active',    '2023-01-15'),
-    (2,  'MEM002', 'Bob Smith',       'bob.smith@email.com',       '555-0102', 'active',    '2023-02-20'),
-    (3,  'MEM003', 'Carol Williams',  'carol.williams@email.com',  '555-0103', 'active',    '2023-03-10'),
-    (4,  'MEM004', 'David Brown',     'david.brown@email.com',     '555-0104', 'active',    '2023-04-05'),
-    (5,  'MEM005', 'Eva Martinez',    'eva.martinez@email.com',    '555-0105', 'active',    '2023-05-18'),
-    (6,  'MEM006', 'Frank Lee',       'frank.lee@email.com',       '555-0106', 'active',    '2023-06-22'),
-    (7,  'MEM007', 'Grace Kim',       'grace.kim@email.com',       '555-0107', 'suspended', '2023-07-30'),
-    (8,  'MEM008', 'Henry Davis',     'henry.davis@email.com',     '555-0108', 'active',    '2023-08-14'),
-    (9,  'MEM009', 'Irene Wilson',    'irene.wilson@email.com',    '555-0109', 'active',    '2023-09-01'),
-    (10, 'MEM010', 'James Taylor',    'james.taylor@email.com',    '555-0110', 'active',    '2023-10-11');
+    (1,  'MEM001', 'Alice Johnson',   'alice.johnson@email.com',   '+256 772 101001', 'active',    '2023-01-15'),
+    (2,  'MEM002', 'Bob Smith',       'bob.smith@email.com',       '+256 701 202002', 'active',    '2023-02-20'),
+    (3,  'MEM003', 'Carol Williams',  'carol.williams@email.com',  '+256 782 303003', 'active',    '2023-03-10'),
+    (4,  'MEM004', 'David Brown',     'david.brown@email.com',     '+256 752 404004', 'active',    '2023-04-05'),
+    (5,  'MEM005', 'Eva Martinez',    'eva.martinez@email.com',    '+256 774 505005', 'active',    '2023-05-18'),
+    (6,  'MEM006', 'Frank Lee',       'frank.lee@email.com',       '+256 703 606006', 'active',    '2023-06-22'),
+    (7,  'MEM007', 'Grace Kim',       'grace.kim@email.com',       '+256 788 707007', 'suspended', '2023-07-30'),
+    (8,  'MEM008', 'Henry Davis',     'henry.davis@email.com',     '+256 756 808008', 'active',    '2023-08-14'),
+    (9,  'MEM009', 'Irene Wilson',    'irene.wilson@email.com',    '+256 776 909009', 'active',    '2023-09-01'),
+    (10, 'MEM010', 'James Taylor',    'james.taylor@email.com',    '+256 705 010010', 'active',    '2023-10-11');
 
     INSERT INTO users (user_id, username, password_hash, full_name, role) VALUES
     (1, 'admin',     '\$2y\$12\$osiNZysNIbf09/Bt701vKuchMhUoqYEZxPsQF7uuDjNR0f7u/oekS', 'System Administrator', 'admin'),

@@ -28,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt = $pdo->prepare('INSERT INTO categories (name, description) VALUES (?, ?)');
         $stmt->execute([$name, $description ?: null]);
 
-        setFlash('success', 'Category "' . e($name) . '" added successfully.');
+        setFlash('success', 'Category "' . $name . '" added successfully.');
         redirect(BASE_URL . '/categories/index.php');
     }
 }
@@ -71,6 +71,7 @@ require_once __DIR__ . '/../includes/navbar.php';
             </div>
             <div class="card-body p-4">
                 <form method="POST" action="" novalidate>
+                    <?= csrf_field() ?>
                     <div class="mb-3">
                         <label for="name" class="form-label fw-semibold text-dark">
                             Category Name <span class="text-danger">*</span>

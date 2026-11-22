@@ -55,6 +55,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($old['date_joined'] === '') {
         $errors['date_joined'] = 'Date joined is required.';
+    } else {
+        $joined = DateTime::createFromFormat('!Y-m-d', $old['date_joined']);
+        if (!$joined || $joined->format('Y-m-d') !== $old['date_joined']) {
+            $errors['date_joined'] = 'Please enter a valid date.';
+        } elseif ($joined > new DateTime('today')) {
+            $errors['date_joined'] = 'Date joined cannot be in the future.';
+        }
     }
 
     if (empty($errors)) {
@@ -71,7 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $old['date_joined'],
         ]);
 
-        setFlash('success', 'Member "' . e($old['full_name']) . '" added successfully.');
+        setFlash('success', 'Member "' . $old['full_name'] . '" added successfully.');
         redirect(BASE_URL . '/members/index.php');
     }
 } else {
@@ -114,6 +121,7 @@ require_once __DIR__ . '/../includes/navbar.php';
 <?php endif; ?>
 
 <form method="POST" action="" novalidate>
+    <?= csrf_field() ?>
     <div class="row g-4">
         <!-- Card 1: Personal Details -->
         <div class="col-lg-6">
@@ -153,7 +161,7 @@ require_once __DIR__ . '/../includes/navbar.php';
                             Phone Number <span class="text-muted small fw-normal">(optional)</span>
                         </label>
                         <input type="tel" id="phone" name="phone" class="form-control" value="<?= e($old['phone']) ?>"
-                            placeholder="e.g. +1 555-0199">
+                            placeholder="e.g. +256 701 234567">
                         <div class="form-text text-muted">Used for overdue loan notifications.</div>
                     </div>
                 </div>
@@ -204,7 +212,7 @@ require_once __DIR__ . '/../includes/navbar.php';
                         <label for="date_joined" class="form-label fw-semibold text-dark">
                             Date Joined <span class="text-danger">*</span>
                         </label>
-                        <input type="date" id="date_joined" name="date_joined"
+                        <input type="date" id="date_joined" name="date_joined" max="<?= date('Y-m-d') ?>"
                             class="form-control <?= isset($errors['date_joined']) ? 'is-invalid' : '' ?>"
                             value="<?= e($old['date_joined']) ?>" required>
                         <?php if (isset($errors['date_joined'])): ?>

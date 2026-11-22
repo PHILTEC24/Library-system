@@ -60,7 +60,6 @@ require_once __DIR__ . '/../includes/navbar.php';
     '</a>'
 ) ?>
 
-<?php displayFlash(); ?>
 
 <!-- Table & Filter Card -->
 <div class="lms-table-card mb-4">
@@ -76,7 +75,7 @@ require_once __DIR__ . '/../includes/navbar.php';
                                value="<?= e($search) ?>" aria-label="Search members">
                     </div>
 
-                    <select name="status" class="form-select lms-filter-select" onchange="this.form.submit()" aria-label="Filter by status">
+                    <select name="status" class="form-select lms-filter-select" aria-label="Filter by status">
                         <option value="all" <?= $status === 'all' || $status === '' ? 'selected' : '' ?>>All statuses</option>
                         <option value="active" <?= $status === 'active' ? 'selected' : '' ?>>Active only</option>
                         <option value="suspended" <?= $status === 'suspended' ? 'selected' : '' ?>>Suspended only</option>
@@ -198,7 +197,7 @@ require_once __DIR__ . '/../includes/navbar.php';
                                    data-confirm-title="Delete Member?"
                                    data-confirm-message="Member '<?= e($m['full_name']) ?>' (<?= e($m['member_number']) ?>) will be removed. This cannot be undone."
                                    data-confirm-button="Delete member"
-                                   data-confirm-style="danger"
+                                   data-confirm-style="danger" data-method="post"
                                    title="Delete member" aria-label="Delete member <?= e($m['full_name']) ?>">
                                     <i class="bi bi-trash"></i>
                                 </a>

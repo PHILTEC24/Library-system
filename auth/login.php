@@ -12,10 +12,12 @@ if (isset($_SESSION['user_id'])) {
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim($_POST['username'] ?? '');
-    $password = trim($_POST['password'] ?? '');
+    $password = (string)($_POST['password'] ?? '');
 
-    if (empty($username) || empty($password)) {
-        $error = 'Wrong username or password.';
+    if (!csrf_is_valid()) {
+        $error = 'Your session expired. Please sign in again.';
+    } elseif ($username === '' || $password === '') {
+        $error = 'Please enter both your username and password.';
     } else {
         try {
             $stmt = $pdo->prepare('SELECT user_id AS id, user_id, username, password_hash, full_name, role FROM users WHERE username = ?');
@@ -188,6 +190,7 @@ $pageTitle = 'Sign in';
                 <?php endif; ?>
 
                 <form method="POST" action="" novalidate id="loginForm">
+                    <?= csrf_field() ?>
                     <div class="mb-3">
                         <label for="username" class="form-label">Username</label>
                         <div class="input-group">

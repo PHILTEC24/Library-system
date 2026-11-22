@@ -29,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $errors[] = 'Selected member does not exist.';
         } elseif ($member['status'] === 'suspended') {
             // Business rule: A suspended member cannot borrow books.
-            $errors[] = 'Rule Violation: Member "' . e($member['full_name']) . '" is currently suspended and cannot borrow books.';
+            $errors[] = 'Rule Violation: Member "' . $member['full_name'] . '" is currently suspended and cannot borrow books.';
         }
 
         // 2. Validate Book
@@ -41,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $errors[] = 'Selected book does not exist.';
         } elseif ($book['available_copies'] <= 0) {
             // Business rule: A book with zero available copies cannot be issued.
-            $errors[] = 'Rule Violation: "' . e($book['title']) . '" has zero available copies in stock.';
+            $errors[] = 'Rule Violation: "' . $book['title'] . '" has zero available copies in stock.';
         }
 
         // 3. Business rule: Single Active Book Policy (1 Person = 1 Book)
@@ -57,7 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $activeStmt->execute([$member_id]);
             $existingLoan = $activeStmt->fetch();
             if ($existingLoan) {
-                $errors[] = 'Rule Violation: Member "' . e($member['full_name']) . '" already has an unreturned book ("' . e($existingLoan['title']) . '"). A member is only permitted to borrow 1 book at a time and cannot borrow another until the previous book is returned and cleared.';
+                $errors[] = 'Rule Violation: Member "' . $member['full_name'] . '" already has an unreturned book ("' . $existingLoan['title'] . '"). A member is only permitted to borrow 1 book at a time and cannot borrow another until the previous book is returned and cleared.';
             }
         }
 
@@ -69,12 +69,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             try {
                 $pdo->beginTransaction();
 
-                // Re-check available copies with row lock (FOR UPDATE)
-                $lockStmt = $pdo->prepare('SELECT available_copies FROM books WHERE book_id = ? FOR UPDATE');
-                $lockStmt->execute([$book_id]);
-                $currentAvail = (int) $lockStmt->fetchColumn();
-
-                if ($currentAvail <= 0) {
+                // Reduce available copies by 1 - atomically, and only while stock remains,
+                // so two simultaneous issues can never push the count below zero.
+                $updStmt = $pdo->prepare('UPDATE books SET available_copies = available_copies - 1 WHERE book_id = ? AND available_copies > 0');
+                $updStmt->execute([$book_id]);
+                if ($updStmt->rowCount() !== 1) {
                     throw new Exception('No copies available for issue at this moment.');
                 }
 
@@ -85,13 +84,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 );
                 $loanStmt->execute([$member_id, $book_id, $issuedBy, $dateIssued, $dueDate]);
 
-                // Reduce available copies by 1
-                $updStmt = $pdo->prepare('UPDATE books SET available_copies = available_copies - 1 WHERE book_id = ?');
-                $updStmt->execute([$book_id]);
-
                 $pdo->commit();
 
-                setFlash('success', 'Book "' . e($book['title']) . '" successfully issued to ' . e($member['full_name']) . '! Due date: ' . format_date($dueDate) . ' (14 days).');
+                setFlash('success', 'Book "' . $book['title'] . '" successfully issued to ' . $member['full_name'] . '! Due date: ' . format_date($dueDate) . ' (14 days).');
                 redirect(BASE_URL . '/loans/index.php');
             } catch (Exception $e) {
                 if ($pdo->inTransaction()) {
@@ -135,7 +130,7 @@ require_once __DIR__ . '/../includes/navbar.php';
         </div>
         <ul class="mb-0 ps-3">
             <?php foreach ($errors as $err): ?>
-                <li><?= $err ?></li>
+                <li><?= e($err) ?></li>
             <?php endforeach; ?>
         </ul>
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
@@ -143,23 +138,22 @@ require_once __DIR__ . '/../includes/navbar.php';
 <?php endif; ?>
 
 <form method="POST" action="" class="lms-issue-form" novalidate>
+    <?= csrf_field() ?>
     <div class="row g-4">
         <!-- Left Column: Selection Fields (Section 7.5) -->
         <div class="col-lg-8">
-            <div class="card shadow-sm border mb-4">
-                <div class="card-header bg-white py-3">
-                    <h5 class="card-title fs-6 mb-0 fw-bold text-dark d-flex align-items-center gap-2">
-                        <i class="bi bi-journal-check text-primary"></i> Loan Particulars
-                    </h5>
+            <div class="card lms-card mb-4">
+                <div class="card-header">
+                    <h2 class="lms-section-title">Loan details</h2>
                 </div>
                 <div class="card-body p-4">
                     <!-- Member Selection -->
                     <div class="mb-4">
-                        <label for="member_id" class="form-label fw-semibold text-dark">
+                        <label for="member_id" class="form-label">
                             Member <span class="text-danger">*</span>
                         </label>
-                        <select name="member_id" id="member_id" class="form-select form-select-lg" required>
-                            <option value="">-- Choose a Member --</option>
+                        <select name="member_id" id="member_id" class="form-select" required>
+                            <option value="">Choose a member…</option>
                             <?php foreach ($members as $m): ?>
                                 <?php
                                 $hasLoan = ($m['active_loans'] > 0);
@@ -179,19 +173,18 @@ require_once __DIR__ . '/../includes/navbar.php';
                                 </option>
                             <?php endforeach; ?>
                         </select>
-                        <div class="form-text text-muted mt-1">
-                            Single Active Book Policy: each member can borrow only 1 book at a time and cannot borrow
-                            another until cleared.
+                        <div class="form-text">
+                            Each member can borrow one book at a time and must return it before borrowing another.
                         </div>
                     </div>
 
                     <!-- Book Selection -->
                     <div class="mb-3">
-                        <label for="book_id" class="form-label fw-semibold text-dark">
-                            Book Title <span class="text-danger">*</span>
+                        <label for="book_id" class="form-label">
+                            Book <span class="text-danger">*</span>
                         </label>
-                        <select name="book_id" id="book_id" class="form-select form-select-lg" required>
-                            <option value="">-- Choose an Available Book --</option>
+                        <select name="book_id" id="book_id" class="form-select" required>
+                            <option value="">Choose a book…</option>
                             <?php foreach ($books as $b): ?>
                                 <?php
                                 $copies = (int) $b['available_copies'];
@@ -203,17 +196,16 @@ require_once __DIR__ . '/../includes/navbar.php';
                                 </option>
                             <?php endforeach; ?>
                         </select>
-                        <div class="form-text text-muted mt-1">
-                            Only books with active copies in stock can be loaned out.
+                        <div class="form-text">
+                            Only books with at least one copy on the shelf can be issued.
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Sticky Action Bar on Mobile -->
-            <div class="d-flex align-items-center justify-content-end gap-2 p-3 bg-white border rounded shadow-sm">
-                <a href="<?= BASE_URL ?>/loans/index.php" class="btn btn-secondary px-4">Cancel</a>
-                <button type="submit" class="btn btn-primary px-4">
+            <div class="lms-form-sticky-bar">
+                <a href="<?= BASE_URL ?>/loans/index.php" class="btn btn-secondary">Cancel</a>
+                <button type="submit" class="btn btn-primary">
                     <i class="bi bi-box-arrow-up-right me-1"></i>Issue book
                 </button>
             </div>
@@ -221,43 +213,42 @@ require_once __DIR__ . '/../includes/navbar.php';
 
         <!-- Right Column: Sticky Loan Summary (Section 7.5) -->
         <div class="col-lg-4">
-            <div class="card shadow-sm border sticky-top" style="top: 84px;">
-                <div class="card-header bg-white py-3">
-                    <h5 class="card-title fs-6 mb-0 fw-bold text-dark d-flex align-items-center gap-2">
-                        <i class="bi bi-card-checklist text-primary"></i> Loan Summary
-                    </h5>
+            <div class="card lms-card lms-sticky-summary">
+                <div class="card-header">
+                    <h2 class="lms-section-title">Loan summary</h2>
                 </div>
-                <div class="card-body p-4">
-                    <div class="mb-3 pb-3 border-bottom">
-                        <div class="text-muted small text-uppercase fw-semibold mb-1">Borrower</div>
-                        <div id="summaryMember" class="fw-semibold text-dark fs-6">None selected</div>
+                <div class="card-body">
+                    <div class="lms-summary-row">
+                        <div class="lms-eyebrow mb-1">Borrower</div>
+                        <div id="summaryMember" class="lms-summary-value">None selected</div>
                     </div>
 
-                    <div class="mb-3 pb-3 border-bottom">
-                        <div class="text-muted small text-uppercase fw-semibold mb-1">Book</div>
-                        <div id="summaryBook" class="fw-semibold text-dark fs-6">None selected</div>
+                    <div class="lms-summary-row">
+                        <div class="lms-eyebrow mb-1">Book</div>
+                        <div id="summaryBook" class="lms-summary-value">None selected</div>
                     </div>
 
-                    <div class="row g-2 mb-3 pb-3 border-bottom">
-                        <div class="col-6">
-                            <div class="text-muted small text-uppercase fw-semibold mb-1">Issued Today</div>
-                            <div class="fw-semibold text-dark"><?= date('d M Y') ?></div>
+                    <div class="lms-summary-row d-flex gap-3">
+                        <div class="flex-fill">
+                            <div class="lms-eyebrow mb-1">Issued</div>
+                            <div class="lms-summary-value lms-tabular"><?= date('d M Y') ?></div>
                         </div>
-                        <div class="col-6">
-                            <div class="text-muted small text-uppercase fw-semibold mb-1">Due Date</div>
-                            <div class="fw-bold text-primary"><?= date('d M Y', strtotime('+14 days')) ?></div>
+                        <div class="flex-fill">
+                            <div class="lms-eyebrow mb-1">Due back</div>
+                            <div class="lms-summary-value lms-tabular text-primary"><?= date('d M Y', strtotime('+14 days')) ?></div>
                         </div>
                     </div>
 
-                    <div class="bg-light p-3 rounded border border-light-subtle">
+                    <div class="lms-policy-box">
                         <div class="d-flex align-items-start gap-2">
-                            <i class="bi bi-shield-check text-success fs-5 mt-n1"></i>
-                            <div class="small text-secondary">
-                                <strong>System Policies:</strong>
-                                <ul class="ps-3 mb-0 mt-1">
-                                    <li>14-day automatic loan period.</li>
-                                    <li>Single active book limit strictly enforced.</li>
+                            <i class="bi bi-shield-check text-success fs-5"></i>
+                            <div>
+                                <strong>Lending rules</strong>
+                                <ul>
+                                    <li>Loans last 14 days.</li>
+                                    <li>One book per member at a time.</li>
                                     <li>Suspended members cannot borrow.</li>
+                                    <li>Late returns: 5% of the book price per day.</li>
                                 </ul>
                             </div>
                         </div>

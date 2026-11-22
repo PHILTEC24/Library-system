@@ -222,16 +222,16 @@ INSERT INTO book_authors (book_id, author_id, author_role) VALUES
 -- SAMPLE DATA: members
 -- ============================================================
 INSERT INTO members (member_no, full_name, email, phone, status, date_joined) VALUES
-('MEM001', 'Alice Johnson',   'alice.johnson@email.com',   '555-0101', 'active',    '2023-01-15'),
-('MEM002', 'Bob Smith',       'bob.smith@email.com',       '555-0102', 'active',    '2023-02-20'),
-('MEM003', 'Carol Williams',  'carol.williams@email.com',  '555-0103', 'active',    '2023-03-10'),
-('MEM004', 'David Brown',     'david.brown@email.com',     '555-0104', 'active',    '2023-04-05'),
-('MEM005', 'Eva Martinez',    'eva.martinez@email.com',    '555-0105', 'active',    '2023-05-18'),
-('MEM006', 'Frank Lee',       'frank.lee@email.com',       '555-0106', 'active',    '2023-06-22'),
-('MEM007', 'Grace Kim',       'grace.kim@email.com',       '555-0107', 'suspended', '2023-07-30'),
-('MEM008', 'Henry Davis',     'henry.davis@email.com',     '555-0108', 'active',    '2023-08-14'),
-('MEM009', 'Irene Wilson',    'irene.wilson@email.com',    '555-0109', 'active',    '2023-09-01'),
-('MEM010', 'James Taylor',    'james.taylor@email.com',    '555-0110', 'active',    '2023-10-11');
+('MEM001', 'Alice Johnson',   'alice.johnson@email.com',   '+256 772 101001', 'active',    '2023-01-15'),
+('MEM002', 'Bob Smith',       'bob.smith@email.com',       '+256 701 202002', 'active',    '2023-02-20'),
+('MEM003', 'Carol Williams',  'carol.williams@email.com',  '+256 782 303003', 'active',    '2023-03-10'),
+('MEM004', 'David Brown',     'david.brown@email.com',     '+256 752 404004', 'active',    '2023-04-05'),
+('MEM005', 'Eva Martinez',    'eva.martinez@email.com',    '+256 774 505005', 'active',    '2023-05-18'),
+('MEM006', 'Frank Lee',       'frank.lee@email.com',       '+256 703 606006', 'active',    '2023-06-22'),
+('MEM007', 'Grace Kim',       'grace.kim@email.com',       '+256 788 707007', 'suspended', '2023-07-30'),
+('MEM008', 'Henry Davis',     'henry.davis@email.com',     '+256 756 808008', 'active',    '2023-08-14'),
+('MEM009', 'Irene Wilson',    'irene.wilson@email.com',    '+256 776 909009', 'active',    '2023-09-01'),
+('MEM010', 'James Taylor',    'james.taylor@email.com',    '+256 705 010010', 'active',    '2023-10-11');
 
 -- ============================================================
 -- SAMPLE DATA: users

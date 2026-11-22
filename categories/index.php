@@ -47,7 +47,6 @@ require_once __DIR__ . '/../includes/navbar.php';
     '</a>'
 ) ?>
 
-<?php displayFlash(); ?>
 
 <!-- Table & Filter Card -->
 <div class="lms-table-card mb-4">
@@ -147,7 +146,7 @@ require_once __DIR__ . '/../includes/navbar.php';
                             </span>
                         </td>
                         <td data-label="Total Books">
-                            <span class="badge rounded-pill bg-light text-secondary border px-3 py-1">
+                            <span class="lms-count-badge">
                                 <?= pluralize((int)$cat['book_count'], 'book', 'books') ?>
                             </span>
                         </td>
@@ -161,9 +160,9 @@ require_once __DIR__ . '/../includes/navbar.php';
                                    class="lms-btn-icon lms-btn-icon--danger"
                                    data-confirm
                                    data-confirm-title="Delete Category?"
-                                   data-confirm-message="Category '<?= e($cat['name']) ?>' will be deleted. Books in this category will need reclassifying."
+                                   data-confirm-message="Category '<?= e($cat['name']) ?>' will be deleted along with its subcategories. Categories that still contain books cannot be deleted."
                                    data-confirm-button="Delete category"
-                                   data-confirm-style="danger"
+                                   data-confirm-style="danger" data-method="post"
                                    title="Delete category" aria-label="Delete category <?= e($cat['name']) ?>">
                                     <i class="bi bi-trash"></i>
                                 </a>
