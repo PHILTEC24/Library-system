@@ -1,20 +1,4 @@
--- ============================================================
--- Library Management System - Useful Queries (Aligned with ERD)
--- ============================================================
 
--- Query 1: Books currently on loan (all active/overdue loans)
-SELECT
-    b.title,
-    b.isbn,
-    m.full_name     AS member,
-    m.member_no     AS member_number,
-    l.date_issued,
-    l.due_date
-FROM loans l
-JOIN books   b ON l.book_id   = b.book_id
-JOIN members m ON l.member_id = m.member_id
-WHERE l.date_returned IS NULL
-ORDER BY l.due_date;
 
 -- Query 2: Overdue loans with days overdue
 SELECT
